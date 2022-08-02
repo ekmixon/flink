@@ -370,10 +370,9 @@ class Over(object):
         if all(isinstance(f, Expression) for f in partition_by):
             return OverWindowPartitioned(get_gateway().jvm.Over.partitionBy(
                 to_expression_jarray(partition_by)))
-        else:
-            assert len(partition_by) == 1
-            assert isinstance(partition_by[0], str)
-            return OverWindowPartitioned(get_gateway().jvm.Over.partitionBy(partition_by[0]))
+        assert len(partition_by) == 1
+        assert isinstance(partition_by[0], str)
+        return OverWindowPartitioned(get_gateway().jvm.Over.partitionBy(partition_by[0]))
 
 
 class OverWindowPartitionedOrdered(object):

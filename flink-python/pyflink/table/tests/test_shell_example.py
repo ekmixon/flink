@@ -32,7 +32,7 @@ class ShellExampleTests(PyFlinkTestCase):
         import tempfile
         import os
         import shutil
-        sink_path = tempfile.gettempdir() + '/streaming.csv'
+        sink_path = f'{tempfile.gettempdir()}/streaming.csv'
         if os.path.exists(sink_path):
             if os.path.isfile(sink_path):
                 os.remove(sink_path)

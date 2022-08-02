@@ -77,10 +77,7 @@ def tz_convert_from_internal(s, t: DataType, local_tz):
     Returns the same series if the series is not a timestamp series. Otherwise,
     returns a converted series.
     """
-    if type(t) == LocalZonedTimestampType:
-        return s.dt.tz_localize(local_tz)
-    else:
-        return s
+    return s.dt.tz_localize(local_tz) if type(t) == LocalZonedTimestampType else s
 
 
 def tz_convert_to_internal(s, t: DataType, local_tz):
@@ -108,9 +105,7 @@ def pickled_bytes_to_python_converter(data, field_type: DataType):
     if isinstance(field_type, RowType):
         row_kind = RowKind(int.from_bytes(data[0], byteorder='big', signed=False))
         data = zip(list(data[1:]), field_type.field_types())
-        fields = []
-        for d, d_type in data:
-            fields.append(pickled_bytes_to_python_converter(d, d_type))
+        fields = [pickled_bytes_to_python_converter(d, d_type) for d, d_type in data]
         result_row = Row(fields)
         result_row.set_row_kind(row_kind)
         return result_row
@@ -129,17 +124,22 @@ def pickled_bytes_to_python_converter(data, field_type: DataType):
             key_type = field_type.key_type
             value_type = field_type.value_type
             zip_kv = zip(data[0], data[1])
-            return dict((pickled_bytes_to_python_converter(k, key_type),
-                         pickled_bytes_to_python_converter(v, value_type))
-                        for k, v in zip_kv)
+            return {
+                pickled_bytes_to_python_converter(
+                    k, key_type
+                ): pickled_bytes_to_python_converter(v, value_type)
+                for k, v in zip_kv
+            }
+
         elif isinstance(field_type, FloatType):
             return field_type.from_sql_type(ast.literal_eval(data))
         elif isinstance(field_type, ArrayType):
             element_type = field_type.element_type
-            elements = []
-            for element_bytes in data:
-                elements.append(pickled_bytes_to_python_converter(element_bytes, element_type))
-            return elements
+            return [
+                pickled_bytes_to_python_converter(element_bytes, element_type)
+                for element_bytes in data
+            ]
+
         elif isinstance(field_type, RawType):
             return field_type.from_sql_type(data)
         else:

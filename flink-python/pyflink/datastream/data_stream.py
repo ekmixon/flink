@@ -231,7 +231,7 @@ class DataStream(object):
         return self
 
     def map(self, func: Union[Callable, MapFunction], output_type: TypeInformation = None) \
-            -> 'DataStream':
+                -> 'DataStream':
         """
         Applies a Map transformation on a DataStream. The transformation calls a MapFunction for
         each element of the DataStream. Each MapFunction call returns exactly one element.
@@ -270,7 +270,7 @@ class DataStream(object):
                 yield self._map_func(value)
 
         return self.process(MapProcessFunctionAdapter(func), output_type) \
-            .name("Map")
+                .name("Map")
 
     def flat_map(self,
                  func: Union[Callable, FlatMapFunction],
@@ -312,7 +312,7 @@ class DataStream(object):
                 yield from self._flat_map_func(value)
 
         return self.process(FlatMapProcessFunctionAdapter(func), output_type) \
-            .name("FlatMap")
+                .name("FlatMap")
 
     def key_by(self,
                key_selector: Union[Callable, KeySelector],
@@ -365,12 +365,13 @@ class DataStream(object):
                                   .STREAM_KEY_BY_MAP_OPERATOR_NAME)
 
         JKeyByKeySelector = gateway.jvm.KeyByKeySelector
-        key_stream = KeyedStream(
+        return KeyedStream(
             stream_with_key_info._j_data_stream.keyBy(
-                JKeyByKeySelector(),
-                Types.ROW([key_type]).get_java_type_info()), output_type_info,
-            self)
-        return key_stream
+                JKeyByKeySelector(), Types.ROW([key_type]).get_java_type_info()
+            ),
+            output_type_info,
+            self,
+        )
 
     def filter(self, func: Union[Callable, FilterFunction]) -> 'DataStream':
         """
@@ -412,7 +413,7 @@ class DataStream(object):
         output_type = typeinfo._from_java_type(
             self._j_data_stream.getTransformation().getOutputType())
         return self.process(FilterProcessFunctionAdapter(func), output_type=output_type) \
-            .name("Filter")
+                .name("Filter")
 
     def union(self, *streams: 'DataStream') -> 'DataStream':
         """
@@ -547,8 +548,7 @@ class DataStream(object):
             j_output_type_info,
             j_python_data_stream_function_operator))
 
-    def assign_timestamps_and_watermarks(self, watermark_strategy: WatermarkStrategy) -> \
-            'DataStream':
+    def assign_timestamps_and_watermarks(self, watermark_strategy: WatermarkStrategy) -> 'DataStream':
         """
         Assigns timestamps to the elements in the data stream and generates watermarks to signal
         event time progress. The given {@link WatermarkStrategy} is used to create a
@@ -557,45 +557,41 @@ class DataStream(object):
         :param watermark_strategy: The strategy to generate watermarks based on event timestamps.
         :return: The stream after the transformation, with assigned timestamps and watermarks.
         """
-        if watermark_strategy._timestamp_assigner is not None:
-            # in case users have specified custom TimestampAssigner, we need to extract and
-            # generate watermark according to the specified TimestampAssigner.
-
-            class TimestampAssignerProcessFunctionAdapter(ProcessFunction):
-
-                def __init__(self, timestamp_assigner: TimestampAssigner):
-                    self._extract_timestamp_func = timestamp_assigner.extract_timestamp
-
-                def process_element(self, value, ctx: 'ProcessFunction.Context'):
-                    yield value, self._extract_timestamp_func(value, ctx.timestamp())
-
-            # step 1: extract the timestamp according to the specified TimestampAssigner
-            timestamped_data_stream = self.process(
-                TimestampAssignerProcessFunctionAdapter(watermark_strategy._timestamp_assigner),
-                Types.TUPLE([self.get_type(), Types.LONG()]))
-            timestamped_data_stream.name("Extract-Timestamp")
-
-            # step 2: assign timestamp and watermark
-            gateway = get_gateway()
-            JCustomTimestampAssigner = gateway.jvm.org.apache.flink.streaming.api.functions.python \
-                .eventtime.CustomTimestampAssigner
-            j_watermarked_data_stream = (
-                timestamped_data_stream._j_data_stream.assignTimestampsAndWatermarks(
-                    watermark_strategy._j_watermark_strategy.withTimestampAssigner(
-                        JCustomTimestampAssigner())))
-
-            # step 3: remove the timestamp field which is added in step 1
-            JRemoveTimestampMapFunction = gateway.jvm.org.apache.flink.streaming.api.functions \
-                .python.eventtime.RemoveTimestampMapFunction
-            result = DataStream(j_watermarked_data_stream.map(
-                JRemoveTimestampMapFunction(), self._j_data_stream.getType()))
-            result.name("Remove-Timestamp")
-            return result
-        else:
+        if watermark_strategy._timestamp_assigner is None:
             # if user not specify a TimestampAssigner, then return directly assign the Java
             # watermark strategy.
             return DataStream(self._j_data_stream.assignTimestampsAndWatermarks(
                 watermark_strategy._j_watermark_strategy))
+        class TimestampAssignerProcessFunctionAdapter(ProcessFunction):
+
+            def __init__(self, timestamp_assigner: TimestampAssigner):
+                self._extract_timestamp_func = timestamp_assigner.extract_timestamp
+
+            def process_element(self, value, ctx: 'ProcessFunction.Context'):
+                yield value, self._extract_timestamp_func(value, ctx.timestamp())
+
+        # step 1: extract the timestamp according to the specified TimestampAssigner
+        timestamped_data_stream = self.process(
+            TimestampAssignerProcessFunctionAdapter(watermark_strategy._timestamp_assigner),
+            Types.TUPLE([self.get_type(), Types.LONG()]))
+        timestamped_data_stream.name("Extract-Timestamp")
+
+        # step 2: assign timestamp and watermark
+        gateway = get_gateway()
+        JCustomTimestampAssigner = gateway.jvm.org.apache.flink.streaming.api.functions.python \
+                .eventtime.CustomTimestampAssigner
+        j_watermarked_data_stream = (
+            timestamped_data_stream._j_data_stream.assignTimestampsAndWatermarks(
+                watermark_strategy._j_watermark_strategy.withTimestampAssigner(
+                    JCustomTimestampAssigner())))
+
+        # step 3: remove the timestamp field which is added in step 1
+        JRemoveTimestampMapFunction = gateway.jvm.org.apache.flink.streaming.api.functions \
+                .python.eventtime.RemoveTimestampMapFunction
+        result = DataStream(j_watermarked_data_stream.map(
+            JRemoveTimestampMapFunction(), self._j_data_stream.getType()))
+        result.name("Remove-Timestamp")
+        return result
 
     def partition_custom(self, partitioner: Union[Callable, Partitioner],
                          key_selector: Union[Callable, KeySelector]) -> 'DataStream':
@@ -621,6 +617,8 @@ class DataStream(object):
                             "function.")
 
         gateway = get_gateway()
+
+
 
         class CustomPartitioner(ProcessFunction):
             """
@@ -658,8 +656,9 @@ class DataStream(object):
                     "NUM_PARTITIONS", "-1"))
                 if self.num_partitions <= 0:
                     raise ValueError(
-                        "The partition number should be a positive value, got %s"
-                        % self.num_partitions)
+                        f"The partition number should be a positive value, got {self.num_partitions}"
+                    )
+
 
             def close(self):
                 if self._partitioner_close_func:
@@ -670,6 +669,7 @@ class DataStream(object):
             def process_element(self, value, ctx: 'ProcessFunction.Context'):
                 partition = self._partition_func(self._get_key_func(value), self.num_partitions)
                 yield Row(partition, value)
+
 
         original_type_info = self.get_type()
         stream_with_partition_info = self.process(
@@ -715,7 +715,7 @@ class DataStream(object):
         return DataStreamSink(self._j_data_stream.sinkTo(sink.get_java_function()))
 
     def execute_and_collect(self, job_execution_name: str = None, limit: int = None) \
-            -> Union['CloseableIterator', list]:
+                -> Union['CloseableIterator', list]:
         """
         Triggers the distributed execution of the streaming dataflow and returns an iterator over
         the elements of the given DataStream.
@@ -929,7 +929,7 @@ class KeyedStream(DataStream):
         self._origin_stream = origin_stream
 
     def map(self, func: Union[Callable, MapFunction], output_type: TypeInformation = None) \
-            -> 'DataStream':
+                -> 'DataStream':
         """
         Applies a Map transformation on a KeyedStream. The transformation calls a MapFunction for
         each element of the DataStream. Each MapFunction call returns exactly one element.
@@ -968,7 +968,7 @@ class KeyedStream(DataStream):
                 yield self._map_func(value)
 
         return self.process(MapKeyedProcessFunctionAdapter(func), output_type) \
-            .name("Map")  # type: ignore
+                .name("Map")  # type: ignore
 
     def flat_map(self,
                  func: Union[Callable, FlatMapFunction],
@@ -1010,7 +1010,7 @@ class KeyedStream(DataStream):
                 yield from self._flat_map_func(value)
 
         return self.process(FlatMapKeyedProcessFunctionAdapter(func), output_type) \
-            .name("FlatMap")
+                .name("FlatMap")
 
     def reduce(self, func: Union[Callable, ReduceFunction]) -> 'DataStream':
         """
@@ -1032,6 +1032,8 @@ class KeyedStream(DataStream):
 
         output_type = _from_java_type(self._original_data_type_info.get_java_type_info())
 
+
+
         class ReduceProcessKeyedProcessFunctionAdapter(KeyedProcessFunction):
 
             def __init__(self, reduce_function):
@@ -1050,10 +1052,14 @@ class KeyedStream(DataStream):
                     self._open_func(runtime_context)
 
                 self._reduce_value_state = runtime_context.get_state(
-                    ValueStateDescriptor("_reduce_state" + str(uuid.uuid4()), output_type))
+                    ValueStateDescriptor(
+                        f"_reduce_state{str(uuid.uuid4())}", output_type
+                    )
+                )
+
                 from pyflink.fn_execution.datastream.runtime_context import StreamingRuntimeContext
                 self._in_batch_execution_mode = \
-                    cast(StreamingRuntimeContext, runtime_context)._in_batch_execution_mode
+                        cast(StreamingRuntimeContext, runtime_context)._in_batch_execution_mode
 
             def close(self):
                 if self._close_func:
@@ -1079,8 +1085,9 @@ class KeyedStream(DataStream):
                 if current_value is not None:
                     yield current_value
 
+
         return self.process(ReduceProcessKeyedProcessFunctionAdapter(func), output_type) \
-            .name("Reduce")
+                .name("Reduce")
 
     def filter(self, func: Union[Callable, FilterFunction]) -> 'DataStream':
         if not isinstance(func, FilterFunction) and not callable(func):
@@ -1111,7 +1118,7 @@ class KeyedStream(DataStream):
                     yield value
 
         return self.process(FilterKeyedProcessFunctionAdapter(func), self._original_data_type_info)\
-            .name("Filter")
+                .name("Filter")
 
     def add_sink(self, sink_func: SinkFunction) -> 'DataStreamSink':
         return self._values().add_sink(sink_func)
@@ -1598,7 +1605,7 @@ def _get_one_input_stream_operator(data_stream: DataStream,
             j_namespace_serializer)
         return j_python_function_operator, j_output_type_info
     else:
-        raise TypeError("Unsupported function type: %s" % func_type)
+        raise TypeError(f"Unsupported function type: {func_type}")
 
     j_python_function_operator = JDataStreamPythonFunctionOperator(
         j_conf,
@@ -1651,7 +1658,7 @@ def _get_two_input_stream_operator(connected_streams: ConnectedStreams,
     elif func_type == UserDefinedDataStreamFunction.KEYED_CO_PROCESS:  # type: ignore
         JTwoInputPythonFunctionOperator = gateway.jvm.PythonKeyedCoProcessOperator
     else:
-        raise TypeError("Unsupported function type: %s" % func_type)
+        raise TypeError(f"Unsupported function type: {func_type}")
 
     j_conf = gateway.jvm.org.apache.flink.configuration.Configuration()
 

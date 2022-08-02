@@ -40,10 +40,10 @@ def remove_if_exists(file_path):
 def find_file_path(pattern):
     files = glob.glob(pattern)
     if len(files) < 1:
-        print("Failed to find the file %s." % pattern)
+        print(f"Failed to find the file {pattern}.")
         exit(-1)
     if len(files) > 1:
-        print("The file pattern %s is ambiguous: %s" % (pattern, files))
+        print(f"The file pattern {pattern} is ambiguous: {files}")
         exit(-1)
     return files[0]
 
@@ -99,7 +99,9 @@ try:
             sys.exit(-1)
         flink_version = VERSION.replace(".dev0", "-SNAPSHOT")
         FLINK_HOME = os.path.abspath(
-            "../../flink-dist/target/flink-%s-bin/flink-%s" % (flink_version, flink_version))
+            f"../../flink-dist/target/flink-{flink_version}-bin/flink-{flink_version}"
+        )
+
 
         incorrect_invocation_message = """
 If you are installing pyflink from flink source, you must first build Flink and
@@ -188,10 +190,12 @@ run sdist.
                 'pyflink.plugins']
 
     PACKAGE_DIR = {
-        'pyflink.bin': TEMP_PATH + '/bin',
-        'pyflink.lib': TEMP_PATH + '/lib',
-        'pyflink.opt': TEMP_PATH + '/opt',
-        'pyflink.plugins': TEMP_PATH + '/plugins'}
+        'pyflink.bin': f'{TEMP_PATH}/bin',
+        'pyflink.lib': f'{TEMP_PATH}/lib',
+        'pyflink.opt': f'{TEMP_PATH}/opt',
+        'pyflink.plugins': f'{TEMP_PATH}/plugins',
+    }
+
 
     PACKAGE_DATA = {
         'pyflink': ['README.txt', 'version.py'],
@@ -202,7 +206,7 @@ run sdist.
 
     if exist_licenses and platform.system() != "Windows":
         PACKAGES.append('pyflink.licenses')
-        PACKAGE_DIR['pyflink.licenses'] = TEMP_PATH + '/licenses'
+        PACKAGE_DIR['pyflink.licenses'] = f'{TEMP_PATH}/licenses'
         PACKAGE_DATA['pyflink.licenses'] = ['*']
 
     setup(

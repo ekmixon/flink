@@ -161,7 +161,7 @@ class MaskUtils:
 
         # first byte contains the row kind bits
         b = self.row_kind_search_table[row_kind_value]
-        for i in range(0, 8 - ROW_KIND_BIT_SIZE):
+        for i in range(8 - ROW_KIND_BIT_SIZE):
             if field_pos + i < len(value) and value[field_pos + i] is None:
                 b |= null_byte_search_table[i + ROW_KIND_BIT_SIZE]
         field_pos += 8 - ROW_KIND_BIT_SIZE
@@ -169,7 +169,7 @@ class MaskUtils:
 
         for _ in range(1, self._leading_complete_bytes_num):
             b = 0x00
-            for i in range(0, 8):
+            for i in range(8):
                 if value[field_pos + i] is None:
                     b |= null_byte_search_table[i]
             field_pos += 8
@@ -192,7 +192,7 @@ class MaskUtils:
 
         if remaining_bits_num:
             b = in_stream.read_byte()
-            mask.extend(mask_search_table[b][0:remaining_bits_num])
+            mask.extend(mask_search_table[b][:remaining_bits_num])
         return mask
 
 
@@ -218,12 +218,15 @@ class FlattenRowCoderImpl(FieldCoderImpl):
 
     def decode_from_stream(self, in_stream: InputStream, length: int = 0):
         row_kind_and_null_mask = self._mask_utils.read_mask(in_stream)
-        return [None if row_kind_and_null_mask[idx + ROW_KIND_BIT_SIZE] else
-                self._field_coders[idx].decode_from_stream(in_stream)
-                for idx in range(0, self._field_count)]
+        return [
+            None
+            if row_kind_and_null_mask[idx + ROW_KIND_BIT_SIZE]
+            else self._field_coders[idx].decode_from_stream(in_stream)
+            for idx in range(self._field_count)
+        ]
 
     def __repr__(self):
-        return 'FlattenRowCoderImpl[%s]' % ', '.join(str(c) for c in self._field_coders)
+        return f"FlattenRowCoderImpl[{', '.join((str(c) for c in self._field_coders))}]"
 
 
 class RowCoderImpl(FieldCoderImpl):
@@ -249,14 +252,19 @@ class RowCoderImpl(FieldCoderImpl):
 
     def decode_from_stream(self, in_stream: InputStream, length=0) -> Row:
         row_kind_and_null_mask = self._mask_utils.read_mask(in_stream)
-        fields = [None if row_kind_and_null_mask[idx + ROW_KIND_BIT_SIZE] else
-                  self._field_coders[idx].decode_from_stream(in_stream)
-                  for idx in range(0, self._field_count)]
+        fields = [
+            None
+            if row_kind_and_null_mask[idx + ROW_KIND_BIT_SIZE]
+            else self._field_coders[idx].decode_from_stream(in_stream)
+            for idx in range(self._field_count)
+        ]
+
 
         # compute the row_kind value
-        row_kind_value = 0
-        for i in range(ROW_KIND_BIT_SIZE):
-            row_kind_value += int(row_kind_and_null_mask[i]) * 2 ** i
+        row_kind_value = sum(
+            int(row_kind_and_null_mask[i]) * 2**i
+            for i in range(ROW_KIND_BIT_SIZE)
+        )
 
         row = Row(*fields)
         row.set_field_names(self._field_names)
@@ -264,8 +272,7 @@ class RowCoderImpl(FieldCoderImpl):
         return row
 
     def __repr__(self):
-        return 'RowCoderImpl[%s, %s]' % \
-               (', '.join(str(c) for c in self._field_coders), self._field_names)
+        return f"RowCoderImpl[{', '.join((str(c) for c in self._field_coders))}, {self._field_names}]"
 
 
 class ArrowCoderImpl(FieldCoderImpl):
@@ -301,7 +308,7 @@ class ArrowCoderImpl(FieldCoderImpl):
         return arrow_to_pandas(self._timezone, self._field_types, [next(self._batch_reader)])
 
     def __repr__(self):
-        return 'ArrowCoderImpl[%s]' % self._schema
+        return f'ArrowCoderImpl[{self._schema}]'
 
 
 class OverWindowArrowCoderImpl(FieldCoderImpl):
@@ -333,7 +340,7 @@ class OverWindowArrowCoderImpl(FieldCoderImpl):
         return window_boundaries_and_arrow_data
 
     def __repr__(self):
-        return 'OverWindowArrowCoderImpl[%s]' % self._arrow_coder
+        return f'OverWindowArrowCoderImpl[{self._arrow_coder}]'
 
 
 class TinyIntCoderImpl(FieldCoderImpl):
@@ -518,11 +525,12 @@ class TimeCoderImpl(FieldCoderImpl):
 
     @staticmethod
     def time_to_internal(t):
-        milliseconds = (t.hour * 3600000
-                        + t.minute * 60000
-                        + t.second * 1000
-                        + t.microsecond // 1000)
-        return milliseconds
+        return (
+            t.hour * 3600000
+            + t.minute * 60000
+            + t.second * 1000
+            + t.microsecond // 1000
+        )
 
     @staticmethod
     def internal_to_time(v):
@@ -632,11 +640,10 @@ class CloudPickleCoderImpl(FieldCoderImpl):
 
     def _decode_one_value_from_stream(self, in_stream: InputStream):
         real_data = self.field_coder.decode_from_stream(in_stream)
-        value = cloudpickle.loads(real_data)
-        return value
+        return cloudpickle.loads(real_data)
 
     def __repr__(self) -> str:
-        return 'CloudPickleCoderImpl[%s]' % str(self.field_coder)
+        return f'CloudPickleCoderImpl[{str(self.field_coder)}]'
 
 
 class PickleCoderImpl(FieldCoderImpl):
@@ -653,11 +660,10 @@ class PickleCoderImpl(FieldCoderImpl):
 
     def decode_from_stream(self, in_stream: InputStream, length=0):
         real_data = self.field_coder.decode_from_stream(in_stream)
-        value = pickle.loads(real_data)
-        return value
+        return pickle.loads(real_data)
 
     def __repr__(self) -> str:
-        return 'PickleCoderImpl[%s]' % str(self.field_coder)
+        return f'PickleCoderImpl[{str(self.field_coder)}]'
 
 
 class TupleCoderImpl(FieldCoderImpl):
@@ -680,7 +686,7 @@ class TupleCoderImpl(FieldCoderImpl):
         return (*decoded_list,)
 
     def __repr__(self) -> str:
-        return 'TupleCoderImpl[%s]' % ', '.join(str(c) for c in self._field_coders)
+        return f"TupleCoderImpl[{', '.join((str(c) for c in self._field_coders))}]"
 
 
 class GenericArrayCoderImpl(FieldCoderImpl):
@@ -702,12 +708,15 @@ class GenericArrayCoderImpl(FieldCoderImpl):
 
     def decode_from_stream(self, in_stream: InputStream, length=0):
         size = in_stream.read_int32()
-        elements = [self._elem_coder.decode_from_stream(in_stream)
-                    if in_stream.read_byte() else None for _ in range(size)]
-        return elements
+        return [
+            self._elem_coder.decode_from_stream(in_stream)
+            if in_stream.read_byte()
+            else None
+            for _ in range(size)
+        ]
 
     def __repr__(self):
-        return 'GenericArrayCoderImpl[%s]' % repr(self._elem_coder)
+        return f'GenericArrayCoderImpl[{repr(self._elem_coder)}]'
 
 
 class PrimitiveArrayCoderImpl(FieldCoderImpl):
@@ -725,11 +734,10 @@ class PrimitiveArrayCoderImpl(FieldCoderImpl):
 
     def decode_from_stream(self, in_stream: InputStream, length=0):
         size = in_stream.read_int32()
-        elements = [self._elem_coder.decode_from_stream(in_stream) for _ in range(size)]
-        return elements
+        return [self._elem_coder.decode_from_stream(in_stream) for _ in range(size)]
 
     def __repr__(self):
-        return 'PrimitiveArrayCoderImpl[%s]' % repr(self._elem_coder)
+        return f'PrimitiveArrayCoderImpl[{repr(self._elem_coder)}]'
 
 
 class MapCoderImpl(FieldCoderImpl):
@@ -757,8 +765,7 @@ class MapCoderImpl(FieldCoderImpl):
         map_value = {}
         for _ in range(size):
             key = self._key_coder.decode_from_stream(in_stream)
-            is_null = in_stream.read_byte()
-            if is_null:
+            if is_null := in_stream.read_byte():
                 map_value[key] = None
             else:
                 value = self._value_coder.decode_from_stream(in_stream)
@@ -766,7 +773,7 @@ class MapCoderImpl(FieldCoderImpl):
         return map_value
 
     def __repr__(self):
-        return 'MapCoderImpl[%s]' % ' : '.join([repr(self._key_coder), repr(self._value_coder)])
+        return f"MapCoderImpl[{' : '.join([repr(self._key_coder), repr(self._value_coder)])}]"
 
 
 class TimeWindowCoderImpl(FieldCoderImpl):
@@ -811,9 +818,7 @@ class DataViewFilterCoderImpl(FieldCoderImpl):
         return self._pickle_coder.decode_from_stream(in_stream)
 
     def _filter_data_views(self, row):
-        i = 0
-        for specs in self._udf_data_view_specs:
+        for i, specs in enumerate(self._udf_data_view_specs):
             for spec in specs:
                 row[i][spec.field_index] = None
-            i += 1
         return row

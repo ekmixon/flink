@@ -64,7 +64,7 @@ class TableSchema(object):
         :return: The data type of the specified field.
         """
         if not isinstance(field, (int, str)):
-            raise TypeError("Expected field index or field name, got %s" % type(field))
+            raise TypeError(f"Expected field index or field name, got {type(field)}")
         optional_result = self._j_table_schema.getFieldDataType(field)
         if optional_result.isPresent():
             return _from_java_type(optional_result.get())
@@ -95,10 +95,7 @@ class TableSchema(object):
         :return: The field name.
         """
         optional_result = self._j_table_schema.getFieldName(field_index)
-        if optional_result.isPresent():
-            return optional_result.get()
-        else:
-            return None
+        return optional_result.get() if optional_result.isPresent() else None
 
     def to_row_data_type(self) -> RowType:
         """

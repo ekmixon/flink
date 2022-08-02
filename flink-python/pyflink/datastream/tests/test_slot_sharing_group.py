@@ -27,12 +27,12 @@ class SlotSharingGroupTests(PyFlinkTestCase):
         off_heap_memory = MemorySize.of_mebi_bytes(200)
         managed_memory = MemorySize.of_mebi_bytes(300)
         slot_sharing_group = SlotSharingGroup.builder(name) \
-            .set_cpu_cores(1.0) \
-            .set_task_heap_memory(heap_memory) \
-            .set_task_off_heap_memory(off_heap_memory) \
-            .set_managed_memory(managed_memory) \
-            .set_external_resource('gpu', 1.0) \
-            .build()
+                .set_cpu_cores(1.0) \
+                .set_task_heap_memory(heap_memory) \
+                .set_task_off_heap_memory(off_heap_memory) \
+                .set_managed_memory(managed_memory) \
+                .set_external_resource('gpu', 1.0) \
+                .build()
         self.assertEqual(slot_sharing_group.get_name(), name)
         self.assertEqual(slot_sharing_group.get_cpu_cores(), 1.0)
         self.assertEqual(slot_sharing_group.get_task_heap_memory(), heap_memory)

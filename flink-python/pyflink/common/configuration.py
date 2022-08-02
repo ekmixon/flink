@@ -124,7 +124,7 @@ class Configuration:
                               associated with the given key.
         :return: The (default) value associated with the given key.
         """
-        return self._j_configuration.getDouble(key, float(default_value))
+        return self._j_configuration.getDouble(key, default_value)
 
     def set_float(self, key: str, value: float) -> 'Configuration':
         """
@@ -133,7 +133,7 @@ class Configuration:
         :param key: The key of the key/value pair to be added.
         :param value: The value of the key/value pair to be added.
         """
-        self._j_configuration.setDouble(key, float(value))
+        self._j_configuration.setDouble(key, value)
         return self
 
     def get_bytearray(self, key: str, default_value: bytearray) -> bytearray:

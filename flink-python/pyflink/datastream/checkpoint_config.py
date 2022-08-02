@@ -410,10 +410,7 @@ class CheckpointConfig(object):
         none has been set.
         """
         j_storage = self._j_checkpoint_config.getCheckpointStorage()
-        if j_storage is None:
-            return None
-        else:
-            return _from_j_checkpoint_storage(j_storage)
+        return None if j_storage is None else _from_j_checkpoint_storage(j_storage)
 
 
 class ExternalizedCheckpointCleanup(Enum):

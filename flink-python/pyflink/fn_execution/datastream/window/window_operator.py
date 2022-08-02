@@ -50,7 +50,7 @@ def get_or_create_keyed_state(runtime_context, state_descriptor):
     elif isinstance(state_descriptor, MapStateDescriptor):
         state = runtime_context.get_map_state(state_descriptor)
     else:
-        raise Exception("Unsupported state descriptor: %s" % type(state_descriptor))
+        raise Exception(f"Unsupported state descriptor: {type(state_descriptor)}")
     return state
 
 
@@ -353,7 +353,7 @@ class WindowOperator(object):
 
                 state_window = merging_windows.get_state_window(actual_window)
                 if state_window is None:
-                    raise Exception("Window %s is not in in-flight window set." % state_window)
+                    raise Exception(f"Window {state_window} is not in in-flight window set.")
 
                 self.window_state.set_current_namespace(state_window)
                 self.window_state.add(value)
@@ -367,9 +367,7 @@ class WindowOperator(object):
                     contents = self.window_state.get()
                     # for list state the iterable will never be none
                     if isinstance(self.window_state, ListState):
-                        contents = [i for i in contents]
-                        if len(contents) == 0:
-                            contents = None
+                        contents = list(contents) or None
                     if contents is None:
                         continue
                     yield from self.emit_window_contents(actual_window, contents)
@@ -397,9 +395,7 @@ class WindowOperator(object):
                     contents = self.window_state.get()
                     # for list state the iterable will never be none
                     if isinstance(self.window_state, ListState):
-                        contents = [i for i in contents]
-                        if len(contents) == 0:
-                            contents = None
+                        contents = list(contents) or None
                     if contents is None:
                         continue
                     yield from self.emit_window_contents(window, contents)
@@ -435,9 +431,7 @@ class WindowOperator(object):
             contents = self.window_state.get()
             # for list state the iterable will never be none
             if isinstance(self.window_state, ListState):
-                contents = [i for i in contents]
-                if len(contents) == 0:
-                    contents = None
+                contents = list(contents) or None
             if contents is not None:
                 yield from self.emit_window_contents(self.trigger_context.window, contents)
 
@@ -475,9 +469,7 @@ class WindowOperator(object):
             contents = self.window_state.get()
             # for list state the iterable will never be none
             if isinstance(self.window_state, ListState):
-                contents = [i for i in contents]
-                if len(contents) == 0:
-                    contents = None
+                contents = list(contents) or None
             if contents is not None:
                 yield from self.emit_window_contents(self.trigger_context.window, contents)
 
@@ -497,14 +489,10 @@ class WindowOperator(object):
             self.merging_sets_state)
 
     def cleanup_time(self, window) -> int:
-        if self.window_assigner.is_event_time():
-            time = window.max_timestamp() + self.allowed_lateness
-            if time >= window.max_timestamp():
-                return time
-            else:
-                return MAX_LONG_VALUE
-        else:
+        if not self.window_assigner.is_event_time():
             return window.max_timestamp()
+        time = window.max_timestamp() + self.allowed_lateness
+        return time if time >= window.max_timestamp() else MAX_LONG_VALUE
 
     def is_cleanup_time(self, window, time) -> bool:
         return time == self.cleanup_time(window)

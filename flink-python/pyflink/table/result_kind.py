@@ -48,4 +48,4 @@ class ResultKind(object):
         elif j_result_kind == JResultKind.SUCCESS_WITH_CONTENT:
             return ResultKind.SUCCESS_WITH_CONTENT
         else:
-            raise Exception("Unsupported Java result kind: %s" % j_result_kind)
+            raise Exception(f"Unsupported Java result kind: {j_result_kind}")

@@ -62,14 +62,14 @@ class InternalWindowProcessFunction(Generic[K, W], ABC):
             self._cleanup_time(window) <= self._ctx.current_watermark()
 
     def _cleanup_time(self, window: W) -> int:
-        if self._window_assigner.is_event_time():
-            cleanup_time = window.max_timestamp() + self._allowed_lateness
-            if cleanup_time >= window.max_timestamp():
-                return cleanup_time
-            else:
-                return MAX_LONG_VALUE
-        else:
+        if not self._window_assigner.is_event_time():
             return window.max_timestamp()
+        cleanup_time = window.max_timestamp() + self._allowed_lateness
+        return (
+            cleanup_time
+            if cleanup_time >= window.max_timestamp()
+            else MAX_LONG_VALUE
+        )
 
     @abstractmethod
     def assign_state_namespace(self, input_row: List, timestamp: int) -> List[W]:
@@ -134,10 +134,10 @@ class GeneralWindowProcessFunction(InternalWindowProcessFunction[K, W]):
 
     def assign_state_namespace(self, input_row: List, timestamp: int) -> List[W]:
         element_windows = self._window_assigner.assign_windows(input_row, timestamp)
-        self._reuse_affected_windows = []
-        for window in element_windows:
-            if not self.is_window_late(window):
-                self._reuse_affected_windows.append(window)
+        self._reuse_affected_windows = [
+            window for window in element_windows if not self.is_window_late(window)
+        ]
+
         return self._reuse_affected_windows
 
     def assign_actual_windows(self, input_row: List, timestamp: int) -> List[W]:
@@ -172,18 +172,13 @@ class PanedWindowProcessFunction(InternalWindowProcessFunction[K, W]):
 
     def assign_state_namespace(self, input_row: List, timestamp: int) -> List[W]:
         pane = self._window_assigner.assign_pane(input_row, timestamp)
-        if not self._is_pane_late(pane):
-            return [pane]
-        else:
-            return []
+        return [] if self._is_pane_late(pane) else [pane]
 
     def assign_actual_windows(self, input_row: List, timestamp: int) -> List[W]:
         element_windows = self._window_assigner.assign_windows(input_row, timestamp)
-        actual_windows = []
-        for window in element_windows:
-            if not self.is_window_late(window):
-                actual_windows.append(window)
-        return actual_windows
+        return [
+            window for window in element_windows if not self.is_window_late(window)
+        ]
 
     def prepare_aggregate_accumulator_for_emit(self, window: W):
         panes = self._window_assigner.split_into_panes(window)
@@ -191,8 +186,7 @@ class PanedWindowProcessFunction(InternalWindowProcessFunction[K, W]):
         # null namespace means use heap data views
         self._window_aggregator.set_accumulators(None, acc)
         for pane in panes:
-            pane_acc = self._ctx.get_window_accumulators(pane)
-            if pane_acc:
+            if pane_acc := self._ctx.get_window_accumulators(pane):
                 self._window_aggregator.merge(pane, pane_acc)
 
     def clean_window_if_needed(self, window: W, current_time: int):
@@ -262,9 +256,10 @@ class MergingWindowProcessFunction(InternalWindowProcessFunction[K, W]):
             else:
                 self._reuse_actual_windows.append(actual_window)
 
-        affected_windows = [self._window_mapping.get(actual)
-                            for actual in self._reuse_actual_windows]
-        return affected_windows
+        return [
+            self._window_mapping.get(actual)
+            for actual in self._reuse_actual_windows
+        ]
 
     def assign_actual_windows(self, input_row: List, timestamp: int) -> List[W]:
         # the actual windows is calculated in assignStateNamespace
@@ -292,8 +287,7 @@ class MergingWindowProcessFunction(InternalWindowProcessFunction[K, W]):
         tuple_key = tuple(key)
         self._sorted_windows = self._cached_sorted_windows.get(tuple_key)
         if self._sorted_windows is None:
-            self._sorted_windows = [k for k in self._window_mapping]
-            self._sorted_windows.sort()
+            self._sorted_windows = sorted(self._window_mapping)
             self._cached_sorted_windows.put(tuple_key, self._sorted_windows)
 
     def _add_window(self, new_window: W):
@@ -342,7 +336,7 @@ class MergingWindowProcessFunction(InternalWindowProcessFunction[K, W]):
             # don't merge the new window itself, it never had any state associated with it
             # i.e. if we are only merging one pre-existing window into itself
             # without extending the pre-existing window
-            if not (len(merge_windows) == 1 and merge_result in merge_windows):
+            if len(merge_windows) != 1 or merge_result not in merge_windows:
                 self._merge(
                     merge_result, merge_windows, merged_state_namespace, merged_state_windows)
 

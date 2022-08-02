@@ -147,10 +147,7 @@ class TableEnvironment(object):
                  registered catalog with given name.
         """
         catalog = self._j_tenv.getCatalog(catalog_name)
-        if catalog.isPresent():
-            return Catalog(catalog.get())
-        else:
-            return None
+        return Catalog(catalog.get()) if catalog.isPresent() else None
 
     def load_module(self, module_name: str, module: Module):
         """
@@ -667,7 +664,7 @@ class TableEnvironment(object):
         :return: List of catalog names.
         """
         j_catalog_name_array = self._j_tenv.listCatalogs()
-        return [item for item in j_catalog_name_array]
+        return list(j_catalog_name_array)
 
     def list_modules(self) -> List[str]:
         """
@@ -678,7 +675,7 @@ class TableEnvironment(object):
         .. versionadded:: 1.10.0
         """
         j_module_name_array = self._j_tenv.listModules()
-        return [item for item in j_module_name_array]
+        return list(j_module_name_array)
 
     def list_full_modules(self) -> List[ModuleEntry]:
         """
@@ -698,7 +695,7 @@ class TableEnvironment(object):
         :return: List of database names in the current catalog.
         """
         j_database_name_array = self._j_tenv.listDatabases()
-        return [item for item in j_database_name_array]
+        return list(j_database_name_array)
 
     def list_tables(self) -> List[str]:
         """
@@ -708,7 +705,7 @@ class TableEnvironment(object):
         :return: List of table and view names in the current database of the current catalog.
         """
         j_table_name_array = self._j_tenv.listTables()
-        return [item for item in j_table_name_array]
+        return list(j_table_name_array)
 
     def list_views(self) -> List[str]:
         """
@@ -720,7 +717,7 @@ class TableEnvironment(object):
         .. versionadded:: 1.11.0
         """
         j_view_name_array = self._j_tenv.listViews()
-        return [item for item in j_view_name_array]
+        return list(j_view_name_array)
 
     def list_user_defined_functions(self) -> List[str]:
         """
@@ -729,7 +726,7 @@ class TableEnvironment(object):
         :return: List of the names of all user defined functions registered in this environment.
         """
         j_udf_name_array = self._j_tenv.listUserDefinedFunctions()
-        return [item for item in j_udf_name_array]
+        return list(j_udf_name_array)
 
     def list_functions(self) -> List[str]:
         """
@@ -740,7 +737,7 @@ class TableEnvironment(object):
         .. versionadded:: 1.10.0
         """
         j_function_name_array = self._j_tenv.listFunctions()
-        return [item for item in j_function_name_array]
+        return list(j_function_name_array)
 
     def list_temporary_tables(self) -> List[str]:
         """
@@ -754,7 +751,7 @@ class TableEnvironment(object):
         .. versionadded:: 1.10.0
         """
         j_table_name_array = self._j_tenv.listTemporaryTables()
-        return [item for item in j_table_name_array]
+        return list(j_table_name_array)
 
     def list_temporary_views(self) -> List[str]:
         """
@@ -768,7 +765,7 @@ class TableEnvironment(object):
         .. versionadded:: 1.10.0
         """
         j_view_name_array = self._j_tenv.listTemporaryViews()
-        return [item for item in j_view_name_array]
+        return list(j_view_name_array)
 
     def drop_temporary_table(self, table_path: str) -> bool:
         """
@@ -1161,13 +1158,16 @@ class TableEnvironment(object):
         java_function = function._java_user_defined_function()
         # this is a temporary solution and will be unified later when we use the new type
         # system(DataType) to replace the old type system(TypeInformation).
-        if self.__class__ == TableEnvironment:
-            if self._is_table_function(java_function):
-                self._register_table_function(name, java_function)
-            elif self._is_aggregate_function(java_function):
-                self._register_aggregate_function(name, java_function)
-            else:
-                self._j_tenv.registerFunction(name, java_function)
+        if self.__class__ == TableEnvironment and self._is_table_function(
+            java_function
+        ):
+            self._register_table_function(name, java_function)
+        elif (
+            self.__class__ == TableEnvironment
+            and not self._is_table_function(java_function)
+            and self._is_aggregate_function(java_function)
+        ):
+            self._register_aggregate_function(name, java_function)
         else:
             self._j_tenv.registerFunction(name, java_function)
 
@@ -1277,7 +1277,7 @@ class TableEnvironment(object):
         """
         if isinstance(table_or_data_stream, Table):
             self._j_tenv.createTemporaryView(view_path, table_or_data_stream._j_table)
-        elif len(fields_or_schema) == 0:
+        elif not fields_or_schema:
             self._j_tenv.createTemporaryView(view_path, table_or_data_stream._j_data_stream)
         elif len(fields_or_schema) == 1 and isinstance(fields_or_schema[0], str):
             self._j_tenv.createTemporaryView(
@@ -1545,12 +1545,14 @@ class TableEnvironment(object):
 
         elif not isinstance(schema, RowType):
             raise TypeError(
-                "schema should be RowType, list, tuple or None, but got: %s" % schema)
+                f"schema should be RowType, list, tuple or None, but got: {schema}"
+            )
+
 
         elements = list(elements)
 
         # in case all the elements are expressions
-        if len(elements) > 0 and all(isinstance(elem, Expression) for elem in elements):
+        if elements and all(isinstance(elem, Expression) for elem in elements):
             if schema is None:
                 return Table(self._j_tenv.fromValues(to_expression_jarray(elements)), self)
             else:
@@ -1585,9 +1587,9 @@ class TableEnvironment(object):
             gateway = get_gateway()
             j_objs = gateway.jvm.PythonBridgeUtils.readPythonObjects(temp_file.name, True)
             PythonTableUtils = gateway.jvm \
-                .org.apache.flink.table.planner.utils.python.PythonTableUtils
+                    .org.apache.flink.table.planner.utils.python.PythonTableUtils
             PythonInputFormatTableSource = gateway.jvm \
-                .org.apache.flink.table.planner.utils.python.PythonInputFormatTableSource
+                    .org.apache.flink.table.planner.utils.python.PythonInputFormatTableSource
             j_input_format = PythonTableUtils.getInputFormat(
                 j_objs, row_type_info, execution_config)
             j_table_source = PythonInputFormatTableSource(
@@ -1629,29 +1631,31 @@ class TableEnvironment(object):
 
         import pandas as pd
         if not isinstance(pdf, pd.DataFrame):
-            raise TypeError("Unsupported type, expected pandas.DataFrame, got %s" % type(pdf))
+            raise TypeError(
+                f"Unsupported type, expected pandas.DataFrame, got {type(pdf)}"
+            )
+
 
         import pyarrow as pa
         arrow_schema = pa.Schema.from_pandas(pdf, preserve_index=False)
 
-        if schema is not None:
-            if isinstance(schema, RowType):
-                result_type = schema
-            elif isinstance(schema, (list, tuple)) and isinstance(schema[0], str):
-                result_type = RowType(
-                    [RowField(field_name, from_arrow_type(field.type, field.nullable))
-                     for field_name, field in zip(schema, arrow_schema)])
-            elif isinstance(schema, (list, tuple)) and isinstance(schema[0], DataType):
-                result_type = RowType(
-                    [RowField(field_name, field_type) for field_name, field_type in zip(
-                        arrow_schema.names, schema)])
-            else:
-                raise TypeError("Unsupported schema type, it could only be of RowType, a "
-                                "list of str or a list of DataType, got %s" % schema)
-        else:
+        if schema is None:
             result_type = RowType([RowField(field.name, from_arrow_type(field.type, field.nullable))
                                    for field in arrow_schema])
 
+        elif isinstance(schema, RowType):
+            result_type = schema
+        elif isinstance(schema, (list, tuple)) and isinstance(schema[0], str):
+            result_type = RowType(
+                [RowField(field_name, from_arrow_type(field.type, field.nullable))
+                 for field_name, field in zip(schema, arrow_schema)])
+        elif isinstance(schema, (list, tuple)) and isinstance(schema[0], DataType):
+            result_type = RowType(
+                [RowField(field_name, field_type) for field_name, field_type in zip(
+                    arrow_schema.names, schema)])
+        else:
+            raise TypeError("Unsupported schema type, it could only be of RowType, a "
+                            "list of str or a list of DataType, got %s" % schema)
         # serializes to a file, and we read the file in java
         temp_file = tempfile.NamedTemporaryFile(delete=False, dir=tempfile.mkdtemp())
         import pytz
@@ -1668,12 +1672,12 @@ class TableEnvironment(object):
             jvm = get_gateway().jvm
 
             data_type = jvm.org.apache.flink.table.types.utils.TypeConversions\
-                .fromLegacyInfoToDataType(_to_java_type(result_type)).notNull()
+                    .fromLegacyInfoToDataType(_to_java_type(result_type)).notNull()
             data_type = data_type.bridgedTo(
                 load_java_class('org.apache.flink.table.data.RowData'))
 
             j_arrow_table_source = \
-                jvm.org.apache.flink.table.runtime.arrow.ArrowUtils.createArrowTableSource(
+                    jvm.org.apache.flink.table.runtime.arrow.ArrowUtils.createArrowTableSource(
                     data_type, temp_file.name)
             return Table(self._j_tenv.fromTableSource(j_arrow_table_source), self)
         finally:
@@ -1691,7 +1695,10 @@ class TableEnvironment(object):
         jar_urls = self.get_config().get_configuration().get_string(config_key, None)
         if jar_urls is not None:
             # normalize and remove duplicates
-            jar_urls_set = set([jvm.java.net.URL(url).toString() for url in jar_urls.split(";")])
+            jar_urls_set = {
+                jvm.java.net.URL(url).toString() for url in jar_urls.split(";")
+            }
+
             j_configuration = get_j_env_configuration(self._get_j_env())
             if j_configuration.containsKey(config_key):
                 for url in j_configuration.getString(config_key, "").split(";"):
@@ -1734,8 +1741,7 @@ class TableEnvironment(object):
     def _get_function_catalog(self):
         function_catalog_field = self._j_tenv.getClass().getDeclaredField("functionCatalog")
         function_catalog_field.setAccessible(True)
-        function_catalog = function_catalog_field.get(self._j_tenv)
-        return function_catalog
+        return function_catalog_field.get(self._j_tenv)
 
     def _before_execute(self):
         jvm = get_gateway().jvm
@@ -1798,34 +1804,20 @@ class StreamTableEnvironment(TableEnvironment):
         :return: The StreamTableEnvironment created from given StreamExecutionEnvironment and
                  configuration.
         """
-        if stream_execution_environment is None and \
-                table_config is None and \
-                environment_settings is None:
-            raise ValueError("No argument found, the param 'stream_execution_environment' "
-                             "or 'environment_settings' is required.")
-        elif stream_execution_environment is None and \
-                table_config is not None and \
-                environment_settings is None:
-            raise ValueError("Only the param 'table_config' is found, "
-                             "the param 'stream_execution_environment' is also required.")
+        if stream_execution_environment is None:
+            if table_config is None and environment_settings is None:
+                raise ValueError("No argument found, the param 'stream_execution_environment' "
+                                 "or 'environment_settings' is required.")
+            elif table_config is not None and environment_settings is None:
+                raise ValueError("Only the param 'table_config' is found, "
+                                 "the param 'stream_execution_environment' is also required.")
         if table_config is not None and \
-                environment_settings is not None:
+                    environment_settings is not None:
             raise ValueError("The param 'table_config' and "
                              "'environment_settings' cannot be used at the same time")
 
         gateway = get_gateway()
-        if environment_settings is not None:
-            if not environment_settings.is_streaming_mode():
-                raise ValueError("The environment settings for StreamTableEnvironment must be "
-                                 "set to streaming mode.")
-            if stream_execution_environment is None:
-                j_tenv = gateway.jvm.TableEnvironment.create(
-                    environment_settings._j_environment_settings)
-            else:
-                j_tenv = gateway.jvm.StreamTableEnvironment.create(
-                    stream_execution_environment._j_stream_execution_environment,
-                    environment_settings._j_environment_settings)
-        else:
+        if environment_settings is None:
             if table_config is not None:
                 j_tenv = gateway.jvm.StreamTableEnvironment.create(
                     stream_execution_environment._j_stream_execution_environment,
@@ -1833,6 +1825,21 @@ class StreamTableEnvironment(TableEnvironment):
             else:
                 j_tenv = gateway.jvm.StreamTableEnvironment.create(
                     stream_execution_environment._j_stream_execution_environment)
+        elif not environment_settings.is_streaming_mode():
+            raise ValueError("The environment settings for StreamTableEnvironment must be "
+                             "set to streaming mode.")
+        else:
+            j_tenv = (
+                gateway.jvm.TableEnvironment.create(
+                    environment_settings._j_environment_settings
+                )
+                if stream_execution_environment is None
+                else gateway.jvm.StreamTableEnvironment.create(
+                    stream_execution_environment._j_stream_execution_environment,
+                    environment_settings._j_environment_settings,
+                )
+            )
+
         return StreamTableEnvironment(j_tenv)
 
     def from_data_stream(self,
@@ -1951,7 +1958,7 @@ class StreamTableEnvironment(TableEnvironment):
         j_data_stream = data_stream._j_data_stream
         JPythonConfigUtil = get_gateway().jvm.org.apache.flink.python.util.PythonConfigUtil
         JPythonConfigUtil.configPythonOperator(j_data_stream.getExecutionEnvironment())
-        if len(fields_or_schema) == 0:
+        if not fields_or_schema:
             return Table(j_table=self._j_tenv.fromDataStream(j_data_stream), t_env=self)
         elif all(isinstance(f, Expression) for f in fields_or_schema):
             return Table(j_table=self._j_tenv.fromDataStream(

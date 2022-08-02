@@ -229,11 +229,13 @@ class SimpleAggsHandleFunctionBase(AggsHandleFunctionBase):
                 if len(self._distinct_view_descriptors[i].get_filter_args()) == 0:
                     filtered = False
                 else:
-                    filtered = True
-                    for filter_arg in self._distinct_view_descriptors[i].get_filter_args():
-                        if input_data[filter_arg]:
-                            filtered = False
-                            break
+                    filtered = not any(
+                        input_data[filter_arg]
+                        for filter_arg in self._distinct_view_descriptors[
+                            i
+                        ].get_filter_args()
+                    )
+
                 if not filtered:
                     input_extractor = self._distinct_view_descriptors[i].get_input_extractor()
                     args = input_extractor(input_data)
@@ -246,12 +248,14 @@ class SimpleAggsHandleFunctionBase(AggsHandleFunctionBase):
             input_extractor = self._input_extractors[i]
             args = input_extractor(input_data)
             if self._distinct_indexes[i] >= 0:
-                if args in self._distinct_data_views[self._distinct_indexes[i]]:
-                    if self._distinct_data_views[self._distinct_indexes[i]][args] > 1:
-                        continue
-                else:
+                if (
+                    args
+                    not in self._distinct_data_views[self._distinct_indexes[i]]
+                ):
                     raise Exception(
                         "The args are not in the distinct data view, this should not happen.")
+                if self._distinct_data_views[self._distinct_indexes[i]][args] > 1:
+                    continue
             self._udfs[i].accumulate(self._accumulators[i], *args)
 
     def retract(self, input_data: Row):
@@ -260,11 +264,13 @@ class SimpleAggsHandleFunctionBase(AggsHandleFunctionBase):
                 if len(self._distinct_view_descriptors[i].get_filter_args()) == 0:
                     filtered = False
                 else:
-                    filtered = True
-                    for filter_arg in self._distinct_view_descriptors[i].get_filter_args():
-                        if input_data[filter_arg]:
-                            filtered = False
-                            break
+                    filtered = not any(
+                        input_data[filter_arg]
+                        for filter_arg in self._distinct_view_descriptors[
+                            i
+                        ].get_filter_args()
+                    )
+
                 if not filtered:
                     input_extractor = self._distinct_view_descriptors[i].get_input_extractor()
                     args = input_extractor(input_data)
@@ -277,7 +283,7 @@ class SimpleAggsHandleFunctionBase(AggsHandleFunctionBase):
             input_extractor = self._input_extractors[i]
             args = input_extractor(input_data)
             if self._distinct_indexes[i] >= 0 and \
-                    args in self._distinct_data_views[self._distinct_indexes[i]]:
+                        args in self._distinct_data_views[self._distinct_indexes[i]]:
                 continue
             self._udfs[i].retract(self._accumulators[i], *args)
 
@@ -325,7 +331,7 @@ class SimpleAggsHandleFunction(SimpleAggsHandleFunctionBase, AggsHandleFunction)
         super(SimpleAggsHandleFunction, self).__init__(
             udfs, input_extractors, udf_data_view_specs, filter_args, distinct_indexes,
             distinct_view_descriptors)
-        self._get_value_indexes = [i for i in range(len(udfs))]
+        self._get_value_indexes = list(range(len(udfs)))
         if index_of_count_star >= 0 and count_star_inserted:
             # The record count is used internally, should be ignored by the get_value method.
             self._get_value_indexes.remove(index_of_count_star)
@@ -513,23 +519,22 @@ class GroupAggFunction(GroupAggFunctionBase):
                 accumulator_state.update(accumulators)
 
                 # if this was not the first row and we have to emit retractions
-                if not first_row:
-                    if pre_agg_value != new_agg_value:
-                        # retract previous result
-                        if self.generate_update_before:
-                            # prepare UPDATE_BEFORE message for previous row
-                            retract_row = join_row(current_key, pre_agg_value)
-                            retract_row.set_row_kind(RowKind.UPDATE_BEFORE)
-                            yield retract_row
-                        # prepare UPDATE_AFTER message for new row
-                        result_row = join_row(current_key, new_agg_value)
-                        result_row.set_row_kind(RowKind.UPDATE_AFTER)
-                        yield result_row
-                else:
+                if first_row:
                     # this is the first, output new result
                     # prepare INSERT message for new row
                     result_row = join_row(current_key, new_agg_value)
                     result_row.set_row_kind(RowKind.INSERT)
+                    yield result_row
+                elif pre_agg_value != new_agg_value:
+                    # retract previous result
+                    if self.generate_update_before:
+                        # prepare UPDATE_BEFORE message for previous row
+                        retract_row = join_row(current_key, pre_agg_value)
+                        retract_row.set_row_kind(RowKind.UPDATE_BEFORE)
+                        yield retract_row
+                    # prepare UPDATE_AFTER message for new row
+                    result_row = join_row(current_key, new_agg_value)
+                    result_row.set_row_kind(RowKind.UPDATE_AFTER)
                     yield result_row
             else:
                 # we retracted the last record for this key

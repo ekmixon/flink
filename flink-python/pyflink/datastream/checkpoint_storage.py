@@ -43,7 +43,10 @@ def _from_j_checkpoint_storage(j_checkpoint_storage):
     j_clz = j_checkpoint_storage.getClass()
 
     if not get_java_class(JCheckpointStorage).isAssignableFrom(j_clz):
-        raise TypeError("%s is not an instance of CheckpointStorage." % j_checkpoint_storage)
+        raise TypeError(
+            f"{j_checkpoint_storage} is not an instance of CheckpointStorage."
+        )
+
 
     if get_java_class(JJobManagerCheckpointStorage).isAssignableFrom(j_clz):
         return JobManagerCheckpointStorage(j_jobmanager_checkpoint_storage=j_checkpoint_storage)
@@ -174,7 +177,7 @@ class JobManagerCheckpointStorage(CheckpointStorage):
         if j_jobmanager_checkpoint_storage is None:
             gateway = get_gateway()
             JJobManagerCheckpointStorage = gateway.jvm.org.apache.flink.runtime.state.storage\
-                .JobManagerCheckpointStorage
+                    .JobManagerCheckpointStorage
             JPath = gateway.jvm.org.apache.flink.core.fs.Path
 
             if checkpoint_path is not None:
@@ -194,10 +197,7 @@ class JobManagerCheckpointStorage(CheckpointStorage):
         :return: The base directory for checkpoints.
         """
         j_path = self._j_checkpoint_storage.getCheckpointPath()
-        if j_path is None:
-            return None
-        else:
-            return j_path.toString()
+        return None if j_path is None else j_path.toString()
 
     def get_max_state_size(self) -> int:
         """
@@ -215,10 +215,7 @@ class JobManagerCheckpointStorage(CheckpointStorage):
         """
 
         j_path = self._j_checkpoint_storage.getSavepointPath()
-        if j_path is None:
-            return None
-        else:
-            return j_path.toString()
+        return None if j_path is None else j_path.toString()
 
     def __str__(self):
         return self._j_checkpoint_storage.toString()
@@ -295,7 +292,7 @@ class FileSystemCheckpointStorage(CheckpointStorage):
         if j_filesystem_checkpoint_storage is None:
             gateway = get_gateway()
             JFileSystemCheckpointStorage = gateway.jvm.org.apache.flink.runtime.state.storage\
-                .FileSystemCheckpointStorage
+                    .FileSystemCheckpointStorage
             JPath = gateway.jvm.org.apache.flink.core.fs.Path
 
             if checkpoint_path is None:
@@ -331,10 +328,7 @@ class FileSystemCheckpointStorage(CheckpointStorage):
         """
 
         j_path = self._j_checkpoint_storage.getSavepointPath()
-        if j_path is None:
-            return None
-        else:
-            return j_path.toString()
+        return None if j_path is None else j_path.toString()
 
     def get_min_file_size_threshold(self) -> int:
         """

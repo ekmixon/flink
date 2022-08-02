@@ -65,87 +65,114 @@ class PandasUDFITTests(object):
         @udf(result_type=DataTypes.TINYINT(), func_type="pandas")
         def tinyint_func(tinyint_param):
             assert isinstance(tinyint_param, pd.Series)
-            assert isinstance(tinyint_param[0], np.int8), \
-                'tinyint_param of wrong type %s !' % type(tinyint_param[0])
+            assert isinstance(
+                tinyint_param[0], np.int8
+            ), f'tinyint_param of wrong type {type(tinyint_param[0])} !'
+
             return tinyint_param
 
         @udf(result_type=DataTypes.SMALLINT(), func_type="pandas")
         def smallint_func(smallint_param):
             assert isinstance(smallint_param, pd.Series)
-            assert isinstance(smallint_param[0], np.int16), \
-                'smallint_param of wrong type %s !' % type(smallint_param[0])
-            assert smallint_param[0] == 32767, 'smallint_param of wrong value %s' % smallint_param
+            assert isinstance(
+                smallint_param[0], np.int16
+            ), f'smallint_param of wrong type {type(smallint_param[0])} !'
+
+            assert (
+                smallint_param[0] == 32767
+            ), f'smallint_param of wrong value {smallint_param}'
+
             return smallint_param
 
         @udf(result_type=DataTypes.INT(), func_type="pandas")
         def int_func(int_param):
             assert isinstance(int_param, pd.Series)
-            assert isinstance(int_param[0], np.int32), \
-                'int_param of wrong type %s !' % type(int_param[0])
-            assert int_param[0] == -2147483648, 'int_param of wrong value %s' % int_param
+            assert isinstance(
+                int_param[0], np.int32
+            ), f'int_param of wrong type {type(int_param[0])} !'
+
+            assert int_param[0] == -2147483648, f'int_param of wrong value {int_param}'
             return int_param
 
         @udf(result_type=DataTypes.BIGINT(), func_type="pandas")
         def bigint_func(bigint_param):
             assert isinstance(bigint_param, pd.Series)
-            assert isinstance(bigint_param[0], np.int64), \
-                'bigint_param of wrong type %s !' % type(bigint_param[0])
+            assert isinstance(
+                bigint_param[0], np.int64
+            ), f'bigint_param of wrong type {type(bigint_param[0])} !'
+
             return bigint_param
 
         @udf(result_type=DataTypes.BOOLEAN(), func_type="pandas")
         def boolean_func(boolean_param):
             assert isinstance(boolean_param, pd.Series)
-            assert isinstance(boolean_param[0], np.bool_), \
-                'boolean_param of wrong type %s !' % type(boolean_param[0])
+            assert isinstance(
+                boolean_param[0], np.bool_
+            ), f'boolean_param of wrong type {type(boolean_param[0])} !'
+
             return boolean_param
 
         @udf(result_type=DataTypes.FLOAT(), func_type="pandas")
         def float_func(float_param):
             assert isinstance(float_param, pd.Series)
-            assert isinstance(float_param[0], np.float32), \
-                'float_param of wrong type %s !' % type(float_param[0])
+            assert isinstance(
+                float_param[0], np.float32
+            ), f'float_param of wrong type {type(float_param[0])} !'
+
             return float_param
 
         @udf(result_type=DataTypes.DOUBLE(), func_type="pandas")
         def double_func(double_param):
             assert isinstance(double_param, pd.Series)
-            assert isinstance(double_param[0], np.float64), \
-                'double_param of wrong type %s !' % type(double_param[0])
+            assert isinstance(
+                double_param[0], np.float64
+            ), f'double_param of wrong type {type(double_param[0])} !'
+
             return double_param
 
         @udf(result_type=DataTypes.STRING(), func_type="pandas")
         def varchar_func(varchar_param):
             assert isinstance(varchar_param, pd.Series)
-            assert isinstance(varchar_param[0], str), \
-                'varchar_param of wrong type %s !' % type(varchar_param[0])
+            assert isinstance(
+                varchar_param[0], str
+            ), f'varchar_param of wrong type {type(varchar_param[0])} !'
+
             return varchar_param
 
         @udf(result_type=DataTypes.BYTES(), func_type="pandas")
         def varbinary_func(varbinary_param):
             assert isinstance(varbinary_param, pd.Series)
-            assert isinstance(varbinary_param[0], bytes), \
-                'varbinary_param of wrong type %s !' % type(varbinary_param[0])
+            assert isinstance(
+                varbinary_param[0], bytes
+            ), f'varbinary_param of wrong type {type(varbinary_param[0])} !'
+
             return varbinary_param
 
         @udf(result_type=DataTypes.DECIMAL(38, 18), func_type="pandas")
         def decimal_func(decimal_param):
             assert isinstance(decimal_param, pd.Series)
-            assert isinstance(decimal_param[0], decimal.Decimal), \
-                'decimal_param of wrong type %s !' % type(decimal_param[0])
+            assert isinstance(
+                decimal_param[0], decimal.Decimal
+            ), f'decimal_param of wrong type {type(decimal_param[0])} !'
+
             return decimal_param
 
         @udf(result_type=DataTypes.DATE(), func_type="pandas")
         def date_func(date_param):
             assert isinstance(date_param, pd.Series)
-            assert isinstance(date_param[0], datetime.date), \
-                'date_param of wrong type %s !' % type(date_param[0])
+            assert isinstance(
+                date_param[0], datetime.date
+            ), f'date_param of wrong type {type(date_param[0])} !'
+
             return date_param
 
         @udf(result_type=DataTypes.TIME(), func_type="pandas")
         def time_func(time_param):
             assert isinstance(time_param, pd.Series)
-            assert isinstance(time_param[0], datetime.time), \
-                'time_param of wrong type %s !' % type(time_param[0])
+            assert isinstance(
+                time_param[0], datetime.time
+            ), f'time_param of wrong type {type(time_param[0])} !'
+
             return time_param
 
         timestamp_value = datetime.datetime(1970, 1, 2, 0, 0, 0, 123000)
@@ -153,17 +180,22 @@ class PandasUDFITTests(object):
         @udf(result_type=DataTypes.TIMESTAMP(3), func_type="pandas")
         def timestamp_func(timestamp_param):
             assert isinstance(timestamp_param, pd.Series)
-            assert isinstance(timestamp_param[0], datetime.datetime), \
-                'timestamp_param of wrong type %s !' % type(timestamp_param[0])
-            assert timestamp_param[0] == timestamp_value, \
-                'timestamp_param is wrong value %s, should be %s!' % (timestamp_param[0],
-                                                                      timestamp_value)
+            assert isinstance(
+                timestamp_param[0], datetime.datetime
+            ), f'timestamp_param of wrong type {type(timestamp_param[0])} !'
+
+            assert (
+                timestamp_param[0] == timestamp_value
+            ), f'timestamp_param is wrong value {timestamp_param[0]}, should be {timestamp_value}!'
+
             return timestamp_param
 
         def array_func(array_param):
             assert isinstance(array_param, pd.Series)
-            assert isinstance(array_param[0], np.ndarray), \
-                'array_param of wrong type %s !' % type(array_param[0])
+            assert isinstance(
+                array_param[0], np.ndarray
+            ), f'array_param of wrong type {type(array_param[0])} !'
+
             return array_param
 
         array_str_func = udf(array_func,
@@ -181,8 +213,10 @@ class PandasUDFITTests(object):
         @udf(result_type=DataTypes.ARRAY(DataTypes.STRING()), func_type="pandas")
         def nested_array_func(nested_array_param):
             assert isinstance(nested_array_param, pd.Series)
-            assert isinstance(nested_array_param[0], np.ndarray), \
-                'nested_array_param of wrong type %s !' % type(nested_array_param[0])
+            assert isinstance(
+                nested_array_param[0], np.ndarray
+            ), f'nested_array_param of wrong type {type(nested_array_param[0])} !'
+
             return pd.Series(nested_array_param[0])
 
         row_type = DataTypes.ROW(
@@ -195,17 +229,25 @@ class PandasUDFITTests(object):
         def row_func(row_param):
             assert isinstance(row_param, pd.DataFrame)
             assert isinstance(row_param.f1, pd.Series)
-            assert isinstance(row_param.f1[0], np.int32), \
-                'row_param.f1 of wrong type %s !' % type(row_param.f1[0])
+            assert isinstance(
+                row_param.f1[0], np.int32
+            ), f'row_param.f1 of wrong type {type(row_param.f1[0])} !'
+
             assert isinstance(row_param.f2, pd.Series)
-            assert isinstance(row_param.f2[0], str), \
-                'row_param.f2 of wrong type %s !' % type(row_param.f2[0])
+            assert isinstance(
+                row_param.f2[0], str
+            ), f'row_param.f2 of wrong type {type(row_param.f2[0])} !'
+
             assert isinstance(row_param.f3, pd.Series)
-            assert isinstance(row_param.f3[0], datetime.datetime), \
-                'row_param.f3 of wrong type %s !' % type(row_param.f3[0])
+            assert isinstance(
+                row_param.f3[0], datetime.datetime
+            ), f'row_param.f3 of wrong type {type(row_param.f3[0])} !'
+
             assert isinstance(row_param.f4, pd.Series)
-            assert isinstance(row_param.f4[0], np.ndarray), \
-                'row_param.f4 of wrong type %s !' % type(row_param.f4[0])
+            assert isinstance(
+                row_param.f4[0], np.ndarray
+            ), f'row_param.f4 of wrong type {type(row_param.f4[0])} !'
+
             return row_param
 
         table_sink = source_sink_utils.TestAppendSink(
@@ -272,7 +314,7 @@ class PandasUDFITTests(object):
             array_int_func(t.s),
             nested_array_func(t.t),
             row_func(t.u)) \
-            .execute_insert("Results").wait()
+                .execute_insert("Results").wait()
         actual = source_sink_utils.results()
         self.assert_equals(
             actual,
@@ -317,11 +359,12 @@ class PandasUDFITTests(object):
         def local_zoned_timestamp_func(local_zoned_timestamp_param):
             assert isinstance(local_zoned_timestamp_param, pd.Series)
             assert isinstance(local_zoned_timestamp_param[0], datetime.datetime), \
-                'local_zoned_timestamp_param of wrong type %s !' % type(
+                    'local_zoned_timestamp_param of wrong type %s !' % type(
                     local_zoned_timestamp_param[0])
-            assert local_zoned_timestamp_param[0] == local_datetime, \
-                'local_zoned_timestamp_param is wrong value %s, %s!' % \
-                (local_zoned_timestamp_param[0], local_datetime)
+            assert (
+                local_zoned_timestamp_param[0] == local_datetime
+            ), f'local_zoned_timestamp_param is wrong value {local_zoned_timestamp_param[0]}, {local_datetime}!'
+
             return local_zoned_timestamp_param
 
         table_sink = source_sink_utils.TestAppendSink(
@@ -333,7 +376,7 @@ class PandasUDFITTests(object):
             DataTypes.ROW([DataTypes.FIELD("a", DataTypes.TIMESTAMP_WITH_LOCAL_TIME_ZONE(3))]))
 
         t.select(local_zoned_timestamp_func(local_zoned_timestamp_func(t.a))) \
-            .execute_insert("Results").wait()
+                .execute_insert("Results").wait()
         actual = source_sink_utils.results()
         self.assert_equals(actual, ["+I[1970-01-02T00:00:00.123Z]"])
 

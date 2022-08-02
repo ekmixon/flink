@@ -24,7 +24,7 @@ import tempfile
 import os
 import shutil
 
-sink_path = tempfile.gettempdir() + '/batch.csv'
+sink_path = f'{tempfile.gettempdir()}/batch.csv'
 if os.path.exists(sink_path):
     if os.path.isfile(sink_path):
         os.remove(sink_path)

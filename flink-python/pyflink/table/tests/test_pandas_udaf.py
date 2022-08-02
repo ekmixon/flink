@@ -294,7 +294,7 @@ class StreamPandasUDAFITTests(PyFlinkStreamTableTestCase):
             '1,1,8,2018-03-11 04:20:00',
             '2,2,3,2018-03-11 03:30:00'
         ]
-        source_path = tmp_dir + '/test_sliding_group_window_over_time.csv'
+        source_path = f'{tmp_dir}/test_sliding_group_window_over_time.csv'
         with open(source_path, 'w') as fd:
             for ele in data:
                 fd.write(ele + '\n')
@@ -331,10 +331,10 @@ class StreamPandasUDAFITTests(PyFlinkStreamTableTestCase):
                 DataTypes.FLOAT()])
         self.t_env.register_table_sink("Results", table_sink)
         t.window(Slide.over("1.hours").every("30.minutes").on("rowtime").alias("w")) \
-            .group_by("a, b, w") \
-            .select("a, w.start, w.end, mean_udaf(c) as b") \
-            .execute_insert("Results") \
-            .wait()
+                .group_by("a, b, w") \
+                .select("a, w.start, w.end, mean_udaf(c) as b") \
+                .execute_insert("Results") \
+                .wait()
         actual = source_sink_utils.results()
         self.assert_equals(actual,
                            ["+I[1, 2018-03-11 02:30:00.0, 2018-03-11 03:30:00.0, 2.0]",
@@ -368,10 +368,10 @@ class StreamPandasUDAFITTests(PyFlinkStreamTableTestCase):
         self.t_env.execute_sql(source_table)
         t = self.t_env.from_path("source_table")
         iterator = t.select("a, proctime") \
-            .window(Slide.over("1.seconds").every("1.seconds").on("proctime").alias("w")) \
-            .group_by("a, w") \
-            .select("mean_udaf(a) as b, w.start").execute().collect()
-        result = [i for i in iterator]
+                .window(Slide.over("1.seconds").every("1.seconds").on("proctime").alias("w")) \
+                .group_by("a, w") \
+                .select("mean_udaf(a) as b, w.start").execute().collect()
+        result = list(iterator)
         # if the WindowAssigner.isEventTime() does not return false,
         # the w.start would be 1970-01-01
         # TODO: After fixing the TimeZone problem of window with processing time (will be fixed in
@@ -393,7 +393,7 @@ class StreamPandasUDAFITTests(PyFlinkStreamTableTestCase):
             '2,2,3,2018-03-11 03:30:00',
             '3,3,3,2018-03-11 03:30:00'
         ]
-        source_path = tmp_dir + '/test_sliding_group_window_over_count.csv'
+        source_path = f'{tmp_dir}/test_sliding_group_window_over_count.csv'
         with open(source_path, 'w') as fd:
             for ele in data:
                 fd.write(ele + '\n')
@@ -427,10 +427,10 @@ class StreamPandasUDAFITTests(PyFlinkStreamTableTestCase):
                 DataTypes.FLOAT()])
         self.t_env.register_table_sink("Results", table_sink)
         t.window(Slide.over("2.rows").every("1.rows").on("protime").alias("w")) \
-            .group_by("a, b, w") \
-            .select("a, mean_udaf(c) as b") \
-            .execute_insert("Results") \
-            .wait()
+                .group_by("a, b, w") \
+                .select("a, mean_udaf(c) as b") \
+                .execute_insert("Results") \
+                .wait()
         actual = source_sink_utils.results()
         self.assert_equals(actual, ["+I[1, 2.5]", "+I[1, 5.5]", "+I[2, 2.0]", "+I[3, 2.5]"])
         os.remove(source_path)
@@ -448,7 +448,7 @@ class StreamPandasUDAFITTests(PyFlinkStreamTableTestCase):
             '1,1,8,2018-03-11 04:20:00',
             '2,2,3,2018-03-11 03:30:00'
         ]
-        source_path = tmp_dir + '/test_tumbling_group_window_over_time.csv'
+        source_path = f'{tmp_dir}/test_tumbling_group_window_over_time.csv'
         with open(source_path, 'w') as fd:
             for ele in data:
                 fd.write(ele + '\n')
@@ -486,10 +486,10 @@ class StreamPandasUDAFITTests(PyFlinkStreamTableTestCase):
                 DataTypes.FLOAT()])
         self.t_env.register_table_sink("Results", table_sink)
         t.window(Tumble.over("1.hours").on("rowtime").alias("w")) \
-            .group_by("a, b, w") \
-            .select("a, w.start, w.end, w.rowtime, mean_udaf(c) as b") \
-            .execute_insert("Results") \
-            .wait()
+                .group_by("a, b, w") \
+                .select("a, w.start, w.end, w.rowtime, mean_udaf(c) as b") \
+                .execute_insert("Results") \
+                .wait()
         actual = source_sink_utils.results()
         self.assert_equals(actual, [
             "+I[1, 2018-03-11 03:00:00.0, 2018-03-11 04:00:00.0, 2018-03-11 03:59:59.999, 2.5]",
@@ -515,7 +515,7 @@ class StreamPandasUDAFITTests(PyFlinkStreamTableTestCase):
             '3,3,3,2018-03-11 03:30:00',
             '1,1,4,2018-03-11 04:20:00',
         ]
-        source_path = tmp_dir + '/test_group_window_aggregate_function_over_count.csv'
+        source_path = f'{tmp_dir}/test_group_window_aggregate_function_over_count.csv'
         with open(source_path, 'w') as fd:
             for ele in data:
                 fd.write(ele + '\n')
@@ -549,10 +549,10 @@ class StreamPandasUDAFITTests(PyFlinkStreamTableTestCase):
                 DataTypes.FLOAT()])
         self.t_env.register_table_sink("Results", table_sink)
         t.window(Tumble.over("2.rows").on("protime").alias("w")) \
-            .group_by("a, b, w") \
-            .select("a, mean_udaf(c) as b") \
-            .execute_insert("Results") \
-            .wait()
+                .group_by("a, b, w") \
+                .select("a, mean_udaf(c) as b") \
+                .execute_insert("Results") \
+                .wait()
         actual = source_sink_utils.results()
         self.assert_equals(actual, ["+I[1, 2.5]", "+I[1, 6.0]", "+I[2, 2.0]", "+I[3, 2.5]"])
         os.remove(source_path)
@@ -570,7 +570,7 @@ class StreamPandasUDAFITTests(PyFlinkStreamTableTestCase):
             '1,8,2013-01-01 04:20:00',
             '2,3,2013-01-01 03:30:00'
         ]
-        source_path = tmp_dir + '/test_over_range_window_aggregate_function.csv'
+        source_path = f'{tmp_dir}/test_over_range_window_aggregate_function.csv'
         with open(source_path, 'w') as fd:
             for ele in data:
                 fd.write(ele + '\n')
@@ -637,7 +637,7 @@ class StreamPandasUDAFITTests(PyFlinkStreamTableTestCase):
             '1,8,2013-01-01 04:20:00',
             '2,3,2013-01-01 03:30:00'
         ]
-        source_path = tmp_dir + '/test_over_rows_window_aggregate_function.csv'
+        source_path = f'{tmp_dir}/test_over_rows_window_aggregate_function.csv'
         with open(source_path, 'w') as fd:
             for ele in data:
                 fd.write(ele + '\n')
@@ -705,7 +705,7 @@ class StreamPandasUDAFITTests(PyFlinkStreamTableTestCase):
             '1,8,2013-01-01 04:20:00',
             '2,3,2013-01-01 03:30:00'
         ]
-        source_path = tmp_dir + '/test_over_rows_window_aggregate_function.csv'
+        source_path = f'{tmp_dir}/test_over_rows_window_aggregate_function.csv'
         with open(source_path, 'w') as fd:
             for ele in data:
                 fd.write(ele + '\n')
@@ -771,8 +771,8 @@ class StreamPandasUDAFITTests(PyFlinkStreamTableTestCase):
             '1,8,2013-01-01 04:20:00',
             '2,3,2013-01-01 03:30:00'
         ]
-        source_path = tmp_dir + '/test_execute_over_aggregate_from_json_plan.csv'
-        sink_path = tmp_dir + '/test_execute_over_aggregate_from_json_plan'
+        source_path = f'{tmp_dir}/test_execute_over_aggregate_from_json_plan.csv'
+        sink_path = f'{tmp_dir}/test_execute_over_aggregate_from_json_plan'
         with open(source_path, 'w') as fd:
             for ele in data:
                 fd.write(ele + '\n')
@@ -826,7 +826,12 @@ class StreamPandasUDAFITTests(PyFlinkStreamTableTestCase):
         get_method(self.t_env._j_tenv.executeJsonPlan(json_plan), "await")()
 
         import glob
-        lines = [line.strip() for file in glob.glob(sink_path + '/*') for line in open(file, 'r')]
+        lines = [
+            line.strip()
+            for file in glob.glob(f'{sink_path}/*')
+            for line in open(file, 'r')
+        ]
+
         lines.sort()
         self.assertEqual(lines, ['1,1.0,2', '1,3.0,6', '1,6.5,13', '2,1.0,2', '2,2.0,4', '3,2.0,4'])
 
@@ -853,9 +858,7 @@ class MaxAdd(AggregateFunction, unittest.TestCase):
         return []
 
     def accumulate(self, accumulator, *args):
-        result = 0
-        for arg in args:
-            result += arg.max()
+        result = sum(arg.max() for arg in args)
         accumulator.append(result)
 
 

@@ -78,10 +78,7 @@ class JobExecutionResult(object):
         .. versionadded:: 1.11.0
         """
         j_result_map = self._j_job_execution_result.getAllAccumulatorResults()
-        accumulators = {}
-        for key in j_result_map:
-            accumulators[key] = j_result_map[key]
-        return accumulators
+        return {key: j_result_map[key] for key in j_result_map}
 
     def __str__(self):
         """

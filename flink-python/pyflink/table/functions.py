@@ -30,10 +30,7 @@ class AvgAggFunction(AggregateFunction):
 
     def get_value(self, accumulator):
         # sum / count
-        if accumulator[0] != 0:
-            return accumulator[1] / accumulator[0]
-        else:
-            return None
+        return accumulator[1] / accumulator[0] if accumulator[0] != 0 else None
 
     def create_accumulator(self):
         # [count, sum]
@@ -126,78 +123,74 @@ class FirstValueWithRetractAggFunction(AggregateFunction):
         return [None, None, MapView(), MapView()]
 
     def accumulate(self, accumulator, *args):
-        if args[0] is not None:
-            value = args[0]
-            prev_order = accumulator[1]
-            value_to_order_map = accumulator[2]
-            order_to_value_map = accumulator[3]
+        if args[0] is None:
+            return
+        value = args[0]
+        prev_order = accumulator[1]
+        value_to_order_map = accumulator[2]
+        order_to_value_map = accumulator[3]
 
-            # calculate the order of current value
-            order = int(round(time.time() * 1000))
-            if value in value_to_order_map:
-                order_list = value_to_order_map[value]
-            else:
-                order_list = []
-            order_list.append(order)
-            value_to_order_map[value] = order_list
+        # calculate the order of current value
+        order = int(round(time.time() * 1000))
+        order_list = value_to_order_map[value] if value in value_to_order_map else []
+        order_list.append(order)
+        value_to_order_map[value] = order_list
 
-            if prev_order is None or prev_order > order:
-                accumulator[0] = value
-                accumulator[1] = order
-            if order in order_to_value_map:
-                value_list = order_to_value_map[order]
-            else:
-                value_list = []
-            value_list.append(value)
-            order_to_value_map[order] = value_list
+        if prev_order is None or prev_order > order:
+            accumulator[0] = value
+            accumulator[1] = order
+        value_list = order_to_value_map[order] if order in order_to_value_map else []
+        value_list.append(value)
+        order_to_value_map[order] = value_list
 
     def retract(self, accumulator, *args):
-        if args[0] is not None:
-            value = args[0]
-            prev_value = accumulator[0]
-            prev_order = accumulator[1]
-            value_to_order_map = accumulator[2]
-            order_to_value_map = accumulator[3]
+        if args[0] is None:
+            return
+        value = args[0]
+        prev_value = accumulator[0]
+        prev_order = accumulator[1]
+        value_to_order_map = accumulator[2]
+        order_to_value_map = accumulator[3]
 
-            # calculate the order of current value
-            if value in value_to_order_map and value_to_order_map[value]:
-                order_list = value_to_order_map[value]
+        # calculate the order of current value
+        if value in value_to_order_map and value_to_order_map[value]:
+            order_list = value_to_order_map[value]
+        else:
+            # this data has not been accumulated
+            return
+        # get and remove current order in value_to_order_map
+        order = order_list.pop(0)
+        if order_list:
+            value_to_order_map[value] = order_list
+        else:
+            del value_to_order_map[value]
+
+        # remove current value in order_to_value_map
+        if order in order_to_value_map:
+            value_list = order_to_value_map[order]
+        else:
+            # this data has not been accumulated
+            return
+        if value in value_list:
+            value_list.remove(value)
+            if value_list:
+                order_to_value_map[order] = value_list
             else:
-                # this data has not been accumulated
-                return
-            # get and remove current order in value_to_order_map
-            order = order_list.pop(0)
-            if order_list:
-                value_to_order_map[value] = order_list
+                del order_to_value_map[order]
+
+        if value == prev_value:
+            start_key = prev_order
+            next_key = MAX_LONG_VALUE
+            for key in order_to_value_map:
+                if start_key <= key < next_key:
+                    next_key = key
+
+            if next_key != MAX_LONG_VALUE:
+                accumulator[0] = order_to_value_map[next_key][0]
+                accumulator[1] = next_key
             else:
-                del value_to_order_map[value]
-
-            # remove current value in order_to_value_map
-            if order in order_to_value_map:
-                value_list = order_to_value_map[order]
-            else:
-                # this data has not been accumulated
-                return
-            if value in value_list:
-                value_list.remove(value)
-                if value_list:
-                    order_to_value_map[order] = value_list
-                else:
-                    del order_to_value_map[order]
-
-            if value == prev_value:
-                start_key = prev_order
-                next_key = MAX_LONG_VALUE
-                for key in order_to_value_map:
-                    if start_key <= key < next_key:
-                        next_key = key
-
-                if next_key != MAX_LONG_VALUE:
-                    accumulator[0] = order_to_value_map[next_key][0]
-                    accumulator[1] = next_key
-                else:
-                    accumulator[0] = None
-                    accumulator[1] = None
+                accumulator[0] = None
+                accumulator[1] = None
 
     def merge(self, accumulator, accumulators):
         raise NotImplementedError("This function does not support merge.")
@@ -233,79 +226,75 @@ class LastValueWithRetractAggFunction(AggregateFunction):
         return [None, None, MapView(), MapView()]
 
     def accumulate(self, accumulator, *args):
-        if args[0] is not None:
-            value = args[0]
-            prev_order = accumulator[1]
-            value_to_order_map = accumulator[2]
-            order_to_value_map = accumulator[3]
+        if args[0] is None:
+            return
+        value = args[0]
+        prev_order = accumulator[1]
+        value_to_order_map = accumulator[2]
+        order_to_value_map = accumulator[3]
 
-            # calculate the order of current value
-            order = int(time.time() * 1000)
-            if value in value_to_order_map:
-                order_list = value_to_order_map[value]
-            else:
-                order_list = []
-            order_list.append(order)
-            value_to_order_map[value] = order_list
+        # calculate the order of current value
+        order = int(time.time() * 1000)
+        order_list = value_to_order_map[value] if value in value_to_order_map else []
+        order_list.append(order)
+        value_to_order_map[value] = order_list
 
-            if prev_order is None or prev_order <= order:
-                accumulator[0] = value
-                accumulator[1] = order
+        if prev_order is None or prev_order <= order:
+            accumulator[0] = value
+            accumulator[1] = order
 
-            if order in order_to_value_map:
-                value_list = order_to_value_map[order]
-            else:
-                value_list = []
-            value_list.append(value)
-            order_to_value_map[order] = value_list
+        value_list = order_to_value_map[order] if order in order_to_value_map else []
+        value_list.append(value)
+        order_to_value_map[order] = value_list
 
     def retract(self, accumulator, *args):
-        if args[0] is not None:
-            value = args[0]
-            prev_value = accumulator[0]
-            prev_order = accumulator[1]
-            value_to_order_map = accumulator[2]
-            order_to_value_map = accumulator[3]
+        if args[0] is None:
+            return
+        value = args[0]
+        prev_value = accumulator[0]
+        prev_order = accumulator[1]
+        value_to_order_map = accumulator[2]
+        order_to_value_map = accumulator[3]
 
-            # calculate the order of current value
-            if value in value_to_order_map and value_to_order_map[value]:
-                order_list = value_to_order_map[value]
+        # calculate the order of current value
+        if value in value_to_order_map and value_to_order_map[value]:
+            order_list = value_to_order_map[value]
+        else:
+            # this data has not been accumulated
+            return
+        # get and remove current order in value_to_order_map
+        order = order_list.pop(0)
+        if order_list:
+            value_to_order_map[value] = order_list
+        else:
+            del value_to_order_map[value]
+
+        if order in order_to_value_map:
+            value_list = order_to_value_map[order]
+        else:
+            return
+
+        if value in value_list:
+            value_list.remove(value)
+            if value_list:
+                order_to_value_map[order] = value_list
             else:
-                # this data has not been accumulated
-                return
-            # get and remove current order in value_to_order_map
-            order = order_list.pop(0)
-            if order_list:
-                value_to_order_map[value] = order_list
+                del order_to_value_map[order]
+
+        if value == prev_value:
+            start_key = prev_order
+            next_key = MIN_LONG_VALUE
+            for key in order_to_value_map:
+                if start_key >= key > next_key:
+                    next_key = key
+
+            if next_key != MIN_LONG_VALUE:
+                values = order_to_value_map[next_key]
+                accumulator[0] = values[len(values) - 1]
+                accumulator[1] = next_key
             else:
-                del value_to_order_map[value]
-
-            if order in order_to_value_map:
-                value_list = order_to_value_map[order]
-            else:
-                return
-
-            if value in value_list:
-                value_list.remove(value)
-                if value_list:
-                    order_to_value_map[order] = value_list
-                else:
-                    del order_to_value_map[order]
-
-            if value == prev_value:
-                start_key = prev_order
-                next_key = MIN_LONG_VALUE
-                for key in order_to_value_map:
-                    if start_key >= key > next_key:
-                        next_key = key
-
-                if next_key != MIN_LONG_VALUE:
-                    values = order_to_value_map[next_key]
-                    accumulator[0] = values[len(values) - 1]
-                    accumulator[1] = next_key
-                else:
-                    accumulator[0] = None
-                    accumulator[1] = None
+                accumulator[0] = None
+                accumulator[1] = None
 
     def merge(self, accumulator, accumulators):
         raise NotImplementedError("This function does not support merge.")
@@ -314,10 +303,7 @@ class LastValueWithRetractAggFunction(AggregateFunction):
 class ListAggFunction(AggregateFunction):
 
     def get_value(self, accumulator):
-        if accumulator[1]:
-            return accumulator[0].join(accumulator[1])
-        else:
-            return None
+        return accumulator[0].join(accumulator[1]) if accumulator[1] else None
 
     def create_accumulator(self):
         # delimiter, values
@@ -336,11 +322,7 @@ class ListAggFunction(AggregateFunction):
 class ListAggWithRetractAggFunction(AggregateFunction):
 
     def get_value(self, accumulator):
-        values = [i for i in accumulator[0]]
-        if values:
-            return ','.join(values)
-        else:
-            return None
+        return ','.join(values) if (values := list(accumulator[0])) else None
 
     def create_accumulator(self):
         # [list, retract_list]
@@ -352,7 +334,7 @@ class ListAggWithRetractAggFunction(AggregateFunction):
 
     def retract(self, accumulator, *args):
         if args[0] is not None:
-            values = [i for i in accumulator[0]]
+            values = list(accumulator[0])
             try:
                 values.remove(args[0])
                 accumulator[0].clear()
@@ -362,15 +344,12 @@ class ListAggWithRetractAggFunction(AggregateFunction):
 
     def merge(self, accumulator, accumulators):
         for acc in accumulators:
-            buffer = [e for e in acc[0]]
-            retract_buffer = [e for e in acc[1]]
+            buffer = list(acc[0])
+            retract_buffer = list(acc[1])
 
             if buffer or retract_buffer:
-                for e in accumulator[0]:
-                    buffer.append(e)
-                for e in accumulator[1]:
-                    retract_buffer.append(e)
-
+                buffer.extend(iter(accumulator[0]))
+                retract_buffer.extend(iter(accumulator[1]))
                 # merge list & retract list
                 new_retract_buffer = []
                 for e in retract_buffer:
@@ -388,8 +367,7 @@ class ListAggWithRetractAggFunction(AggregateFunction):
 class ListAggWsWithRetractAggFunction(AggregateFunction):
 
     def get_value(self, accumulator):
-        values = [i for i in accumulator[0]]
-        if values:
+        if values := list(accumulator[0]):
             return accumulator[2].join(values)
         else:
             return None
@@ -406,7 +384,7 @@ class ListAggWsWithRetractAggFunction(AggregateFunction):
     def retract(self, accumulator, *args):
         if args[0] is not None:
             accumulator[2] = args[1]
-            values = [i for i in accumulator[0]]
+            values = list(accumulator[0])
             if args[0] in values:
                 values.remove(args[0])
                 accumulator[0].clear()
@@ -416,16 +394,13 @@ class ListAggWsWithRetractAggFunction(AggregateFunction):
 
     def merge(self, accumulator, accumulators):
         for acc in accumulators:
-            buffer = [e for e in acc[0]]
-            retract_buffer = [e for e in acc[1]]
+            buffer = list(acc[0])
+            retract_buffer = list(acc[1])
 
             if buffer or retract_buffer:
                 accumulator[2] = acc[2]
-                for e in accumulator[0]:
-                    buffer.append(e)
-                for e in accumulator[1]:
-                    retract_buffer.append(e)
-
+                buffer.extend(iter(accumulator[0]))
+                retract_buffer.extend(iter(accumulator[1]))
                 # merge list & retract list
                 new_retract_buffer = []
                 for e in retract_buffer:
@@ -449,70 +424,63 @@ class MaxAggFunction(AggregateFunction):
         return [None]
 
     def accumulate(self, accumulator, *args):
-        if args[0] is not None:
-            if accumulator[0] is None or args[0] > accumulator[0]:
-                accumulator[0] = args[0]
+        if args[0] is not None and (
+            accumulator[0] is None or args[0] > accumulator[0]
+        ):
+            accumulator[0] = args[0]
 
     def retract(self, accumulator, *args):
         raise NotImplementedError("This function does not support retraction.")
 
     def merge(self, accumulator, accumulators):
         for acc in accumulators:
-            if acc[0] is not None:
-                if accumulator[0] is None or acc[0] > accumulator[0]:
-                    accumulator[0] = acc[0]
+            if acc[0] is not None and (
+                accumulator[0] is None or acc[0] > accumulator[0]
+            ):
+                accumulator[0] = acc[0]
 
 
 class MaxWithRetractAggFunction(AggregateFunction):
 
     def get_value(self, accumulator):
-        if accumulator[1] > 0:
-            return accumulator[0]
-        else:
-            return None
+        return accumulator[0] if accumulator[1] > 0 else None
 
     def create_accumulator(self):
         # [max, map_size, value_to_count_map]
         return [None, 0, MapView()]
 
     def accumulate(self, accumulator, *args):
-        if args[0] is not None:
-            value = args[0]
-            if accumulator[1] == 0 or accumulator[0] < value:
-                accumulator[0] = value
+        if args[0] is None:
+            return
+        value = args[0]
+        if accumulator[1] == 0 or accumulator[0] < value:
+            accumulator[0] = value
 
-            if value in accumulator[2]:
-                count = accumulator[2][value]
-            else:
-                count = 0
-
-            count += 1
-            if count == 0:
-                del accumulator[2][value]
-            else:
-                accumulator[2][value] = count
-            if count == 1:
-                accumulator[1] += 1
+        count = accumulator[2][value] if value in accumulator[2] else 0
+        count += 1
+        if count == 0:
+            del accumulator[2][value]
+        else:
+            accumulator[2][value] = count
+        if count == 1:
+            accumulator[1] += 1
 
     def retract(self, accumulator, *args):
-        if args[0] is not None:
-            value = args[0]
-            if value in accumulator[2]:
-                count = accumulator[2][value]
-            else:
-                count = 0
+        if args[0] is None:
+            return
+        value = args[0]
+        count = accumulator[2][value] if value in accumulator[2] else 0
+        count -= 1
+        if count == 0:
+            del accumulator[2][value]
+            accumulator[1] -= 1
 
-            count -= 1
-            if count == 0:
-                del accumulator[2][value]
-                accumulator[1] -= 1
+            if accumulator[1] == 0:
+                accumulator[0] = None
+                return
 
-                if accumulator[1] == 0:
-                    accumulator[0] = None
-                    return
-
-                if value == accumulator[0]:
-                    self.update_max(accumulator)
+            if value == accumulator[0]:
+                self.update_max(accumulator)
 
     @staticmethod
     def update_max(acc):
@@ -539,10 +507,7 @@ class MaxWithRetractAggFunction(AggregateFunction):
 
             # merge the count for each key
             for value, count in a[2].items():
-                if value in acc[2]:
-                    this_count = acc[2][value]
-                else:
-                    this_count = 0
+                this_count = acc[2][value] if value in acc[2] else 0
                 merged_count = count + this_count
                 if merged_count == 0:
                     # remove it when count is increased from -1 to 0
@@ -579,70 +544,63 @@ class MinAggFunction(AggregateFunction):
         return [None]
 
     def accumulate(self, accumulator, *args):
-        if args[0] is not None:
-            if accumulator[0] is None or accumulator[0] > args[0]:
-                accumulator[0] = args[0]
+        if args[0] is not None and (
+            accumulator[0] is None or accumulator[0] > args[0]
+        ):
+            accumulator[0] = args[0]
 
     def retract(self, accumulator, *args):
         raise NotImplementedError("This function does not support retraction.")
 
     def merge(self, accumulator, accumulators):
         for acc in accumulators:
-            if acc[0] is not None:
-                if accumulator[0] is None or accumulator[0] > acc[0]:
-                    accumulator[0] = acc[0]
+            if acc[0] is not None and (
+                accumulator[0] is None or accumulator[0] > acc[0]
+            ):
+                accumulator[0] = acc[0]
 
 
 class MinWithRetractAggFunction(AggregateFunction):
 
     def get_value(self, accumulator):
-        if accumulator[1] > 0:
-            return accumulator[0]
-        else:
-            return None
+        return accumulator[0] if accumulator[1] > 0 else None
 
     def create_accumulator(self):
         # [min, map_size, value_to_count_map]
         return [None, 0, MapView()]
 
     def accumulate(self, accumulator, *args):
-        if args[0] is not None:
-            value = args[0]
-            if accumulator[1] == 0 or accumulator[0] > value:
-                accumulator[0] = value
+        if args[0] is None:
+            return
+        value = args[0]
+        if accumulator[1] == 0 or accumulator[0] > value:
+            accumulator[0] = value
 
-            if value in accumulator[2]:
-                count = accumulator[2][value]
-            else:
-                count = 0
-
-            count += 1
-            if count == 0:
-                del accumulator[2][value]
-            else:
-                accumulator[2][value] = count
-            if count == 1:
-                accumulator[1] += 1
+        count = accumulator[2][value] if value in accumulator[2] else 0
+        count += 1
+        if count == 0:
+            del accumulator[2][value]
+        else:
+            accumulator[2][value] = count
+        if count == 1:
+            accumulator[1] += 1
 
     def retract(self, accumulator, *args):
-        if args[0] is not None:
-            value = args[0]
-            if value in accumulator[2]:
-                count = accumulator[2][value]
-            else:
-                count = 0
+        if args[0] is None:
+            return
+        value = args[0]
+        count = accumulator[2][value] if value in accumulator[2] else 0
+        count -= 1
+        if count == 0:
+            del accumulator[2][value]
+            accumulator[1] -= 1
 
-            count -= 1
-            if count == 0:
-                del accumulator[2][value]
-                accumulator[1] -= 1
+            if accumulator[1] == 0:
+                accumulator[0] = None
+                return
 
-                if accumulator[1] == 0:
-                    accumulator[0] = None
-                    return
-
-                if value == accumulator[0]:
-                    self.update_min(accumulator)
+            if value == accumulator[0]:
+                self.update_min(accumulator)
 
     @staticmethod
     def update_min(acc):
@@ -669,10 +627,7 @@ class MinWithRetractAggFunction(AggregateFunction):
 
             # merge the count for each key
             for value, count in a[2].items():
-                if value in acc[2]:
-                    this_count = acc[2][value]
-                else:
-                    this_count = 0
+                this_count = acc[2][value] if value in acc[2] else 0
                 merged_count = count + this_count
                 if merged_count == 0:
                     # remove it when count is increased from -1 to 0
@@ -773,10 +728,7 @@ class SumAggFunction(AggregateFunction):
 class SumWithRetractAggFunction(AggregateFunction):
 
     def get_value(self, accumulator):
-        if accumulator[1] == 0:
-            return None
-        else:
-            return accumulator[0]
+        return None if accumulator[1] == 0 else accumulator[0]
 
     def create_accumulator(self):
         # [sum, count]

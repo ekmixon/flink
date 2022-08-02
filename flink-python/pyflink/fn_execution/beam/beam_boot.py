@@ -72,7 +72,7 @@ if __name__ == "__main__":
     check_not_empty(worker_id, "No id provided.")
     check_not_empty(provision_endpoint, "No provision endpoint provided.")
 
-    logging.info("Initializing python harness: %s" % " ".join(sys.argv))
+    logging.info(f'Initializing python harness: {" ".join(sys.argv)}')
 
     metadata = [("worker_id", worker_id)]
 

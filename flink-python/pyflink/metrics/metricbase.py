@@ -122,7 +122,7 @@ class GenericMetricGroup(MetricGroup):
             return self._add_group(name, MetricGroupType.generic)
         else:
             return self._add_group(name, MetricGroupType.key)\
-                ._add_group(extra, MetricGroupType.value)
+                    ._add_group(extra, MetricGroupType.value)
 
     def counter(self, name: str) -> 'Counter':
         from apache_beam.metrics.metric import Metrics
@@ -145,11 +145,10 @@ class GenericMetricGroup(MetricGroup):
     def _get_metric_group_names_and_types(self) -> Tuple[List[str], List[str]]:
         if self._name is None:
             return [], []
-        else:
-            names, types = self._parent._get_metric_group_names_and_types()
-            names.append(self._name)
-            types.append(str(self._metric_group_type))
-            return names, types
+        names, types = self._parent._get_metric_group_names_and_types()
+        names.append(self._name)
+        types.append(str(self._metric_group_type))
+        return names, types
 
     def _get_namespace(self, time=None) -> str:
         names, metric_group_type = self._get_metric_group_names_and_types()

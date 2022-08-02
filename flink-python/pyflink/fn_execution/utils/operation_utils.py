@@ -79,9 +79,11 @@ def wrap_input_series_as_dataframe(*args):
 def check_pandas_udf_result(f, *input_args):
     output = f(*input_args)
     import pandas as pd
-    assert type(output) == pd.Series or type(output) == pd.DataFrame, \
-        "The result type of Pandas UDF '%s' must be pandas.Series or pandas.DataFrame, got %s" \
+    assert type(output) in [pd.Series, pd.DataFrame], (
+        "The result type of Pandas UDF '%s' must be pandas.Series or pandas.DataFrame, got %s"
         % (f.__name__, type(output))
+    )
+
     assert len(output) == len(input_args[0]), \
         "The result length '%d' of Pandas UDF '%s' is not equal to the input length '%d'" \
         % (len(output), f.__name__, len(input_args[0]))
@@ -93,8 +95,7 @@ def extract_over_window_user_defined_function(user_defined_function_proto):
     return (*extract_user_defined_function(user_defined_function_proto, True), window_index)
 
 
-def extract_user_defined_function(user_defined_function_proto, pandas_udaf=False)\
-        -> Tuple[str, Dict, List]:
+def extract_user_defined_function(user_defined_function_proto, pandas_udaf=False) -> Tuple[str, Dict, List]:
     """
     Extracts user-defined-function from the proto representation of a
     :class:`UserDefinedFunction`.
@@ -122,7 +123,7 @@ def extract_user_defined_function(user_defined_function_proto, pandas_udaf=False
                 local_funcs.extend(udf_funcs)
             elif arg.HasField("inputOffset"):
                 # the input argument is a column of the input row
-                args_str.append("value[%s]" % arg.inputOffset)
+                args_str.append(f"value[{arg.inputOffset}]")
             else:
                 # the input argument is a constant value
                 constant_value_name, parsed_constant_value = \
@@ -137,9 +138,10 @@ def extract_user_defined_function(user_defined_function_proto, pandas_udaf=False
     user_defined_func = pickle.loads(user_defined_function_proto.payload)
     if pandas_udaf:
         user_defined_func = PandasAggregateFunctionWrapper(user_defined_func)
-    func_name = 'f%s' % _next_func_num()
-    if isinstance(user_defined_func, DelegatingScalarFunction) \
-            or isinstance(user_defined_func, DelegationTableFunction):
+    func_name = f'f{_next_func_num()}'
+    if isinstance(
+        user_defined_func, (DelegatingScalarFunction, DelegationTableFunction)
+    ):
         if user_defined_function_proto.is_pandas_udf:
             variable_dict[func_name] = partial(check_pandas_udf_result, user_defined_func.func)
         else:
@@ -154,21 +156,21 @@ def extract_user_defined_function(user_defined_function_proto, pandas_udaf=False
     if user_defined_function_proto.takes_row_as_input:
         if input_variable_dict:
             # for constant or other udfs as input arguments.
-            func_str = "%s(%s)" % (func_name, func_args)
+            func_str = f"{func_name}({func_args})"
         elif user_defined_function_proto.is_pandas_udf or pandas_udaf:
             # for pandas udf/udaf, the input data structure is a List of Pandas.Series
             # we need to merge these Pandas.Series into a Pandas.DataFrame
             variable_dict['wrap_input_series_as_dataframe'] = wrap_input_series_as_dataframe
-            func_str = "%s(wrap_input_series_as_dataframe(%s))" % (func_name, func_args)
+            func_str = f"{func_name}(wrap_input_series_as_dataframe({func_args}))"
         else:
             # directly use `value` as input argument
             # e.g.
             # lambda value: Row(value[0], value[1])
             #   can be optimized to
             # lambda value: value
-            func_str = "%s(value)" % func_name
+            func_str = f"{func_name}(value)"
     else:
-        func_str = "%s(%s)" % (func_name, func_args)
+        func_str = f"{func_name}({func_args})"
     return func_str, variable_dict, user_defined_funcs
 
 
@@ -181,30 +183,27 @@ def _parse_constant_value(constant_value) -> Tuple[str, Any]:
     # the pickled_data doesn't need to transfer to anther python object
     if j_type == 0:
         parsed_constant_value = pickled_data
-    # the type is DATE
     elif j_type == 1:
         parsed_constant_value = \
             datetime.date(year=1970, month=1, day=1) + datetime.timedelta(days=pickled_data)
-    # the type is TIME
     elif j_type == 2:
         seconds, milliseconds = divmod(pickled_data, 1000)
         minutes, seconds = divmod(seconds, 60)
         hours, minutes = divmod(minutes, 60)
         parsed_constant_value = datetime.time(hours, minutes, seconds, milliseconds * 1000)
-    # the type is TIMESTAMP
     elif j_type == 3:
         parsed_constant_value = \
             datetime.datetime(year=1970, month=1, day=1, hour=0, minute=0, second=0) \
             + datetime.timedelta(milliseconds=pickled_data)
     else:
-        raise Exception("Unknown type %s, should never happen" % str(j_type))
+        raise Exception(f"Unknown type {str(j_type)}, should never happen")
 
     def _next_constant_num():
         global _constant_num
         _constant_num = _constant_num + 1
         return _constant_num
 
-    constant_value_name = 'c%s' % _next_constant_num()
+    constant_value_name = f'c{_next_constant_num()}'
     return constant_value_name, parsed_constant_value
 
 
@@ -219,7 +218,7 @@ def extract_user_defined_aggregate_function(
     for arg in user_defined_function_proto.inputs:
         if arg.HasField("inputOffset"):
             # the input argument is a column of the input row
-            args_str.append("value[%s]" % arg.inputOffset)
+            args_str.append(f"value[{arg.inputOffset}]")
         else:
             # the input argument is a constant value
             constant_value_name, parsed_constant_value = \
@@ -251,7 +250,7 @@ def extract_user_defined_aggregate_function(
         # lambda value: value
         func_str = "lambda value : [value]"
     else:
-        func_str = "lambda value : (%s,)" % ",".join(args_str)
+        func_str = f'lambda value : ({",".join(args_str)},)'
     return user_defined_agg, \
         eval(func_str, local_variable_dict) \
         if args_str else lambda v: tuple(), \
@@ -267,9 +266,8 @@ def is_built_in_function(payload):
 
 
 def load_aggregate_function(payload):
-    if is_built_in_function(payload):
-        built_in_function_class_name = payload[1:].decode("utf-8")
-        cls = getattr(functions, built_in_function_class_name)
-        return cls()
-    else:
+    if not is_built_in_function(payload):
         return pickle.loads(payload)
+    built_in_function_class_name = payload[1:].decode("utf-8")
+    cls = getattr(functions, built_in_function_class_name)
+    return cls()

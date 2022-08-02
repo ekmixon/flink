@@ -536,7 +536,7 @@ class CatalogTestBase(PyFlinkTestCase):
     def test_list_view(self):
         self.catalog.create_database(self.db1, self.create_db(), False)
 
-        self.assertTrue(0 == len(self.catalog.list_tables(self.db1)))
+        self.assertTrue(len(self.catalog.list_tables(self.db1)) == 0)
 
         self.catalog.create_table(self.path1, self.create_view(), False)
         self.catalog.create_table(self.path3, self.create_table(), False)
@@ -654,7 +654,7 @@ class CatalogTestBase(PyFlinkTestCase):
         self.catalog.create_database(self.db1, self.create_db(), False)
         self.catalog.create_table(self.path1, self.create_partitioned_table(), False)
 
-        self.assertTrue(0 == len(self.catalog.list_partitions(self.path1)))
+        self.assertTrue(len(self.catalog.list_partitions(self.path1)) == 0)
 
         self.catalog.create_partition(self.path1, self.create_partition_spec(),
                                       self.create_partition(), False)

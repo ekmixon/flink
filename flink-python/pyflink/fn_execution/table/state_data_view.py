@@ -28,11 +28,8 @@ from pyflink.table.data_view import ListView, MapView, DataView
 
 
 def extract_data_view_specs_from_accumulator(current_index, accumulator):
-    # for built in functions we extract the data view specs from their accumulator
-    i = -1
     extracted_specs = []
-    for field in accumulator:
-        i += 1
+    for i, field in enumerate(accumulator):
         # TODO: infer the coder from the input types and output type of the built-in functions
         if isinstance(field, MapView):
             extracted_specs.append(MapViewSpec(
@@ -45,9 +42,7 @@ def extract_data_view_specs_from_accumulator(current_index, accumulator):
 
 def extract_data_view_specs(udfs):
     extracted_udf_data_view_specs = []
-    current_index = -1
-    for udf in udfs:
-        current_index += 1
+    for current_index, udf in enumerate(udfs):
         udf_data_view_specs_proto = udf.specs
         if not udf_data_view_specs_proto:
             if is_built_in_function(udf.payload):
@@ -71,9 +66,9 @@ def extract_data_view_specs(udfs):
                     extracted_specs.append(
                         MapViewSpec(state_id, field_index, key_coder, value_coder))
                 else:
-                    raise Exception("Unsupported data view spec type: " + spec_proto.type)
+                    raise Exception(f"Unsupported data view spec type: {spec_proto.type}")
             extracted_udf_data_view_specs.append(extracted_specs)
-    if all([len(i) == 0 for i in extracted_udf_data_view_specs]):
+    if all(len(i) == 0 for i in extracted_udf_data_view_specs):
         return []
     return extracted_udf_data_view_specs
 
@@ -109,7 +104,7 @@ class StateListView(ListView, StateDataView[N], ABC):
         self._list_state.clear()
 
     def __hash__(self) -> int:
-        return hash([i for i in self.get()])
+        return hash(list(self.get()))
 
 
 class KeyedStateListView(StateListView[N]):

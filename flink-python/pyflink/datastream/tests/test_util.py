@@ -37,12 +37,11 @@ class DataStreamTestSinkFunction(SinkFunction):
         results = list(j_results)
         if not is_python_object:
             return results
-        else:
-            str_results = []
-            for result in results:
-                pickled_result = pickle.loads(result)
-                str_results.append(str(pickled_result))
-            return str_results
+        str_results = []
+        for result in results:
+            pickled_result = pickle.loads(result)
+            str_results.append(str(pickled_result))
+        return str_results
 
     def clear(self):
         if self.j_data_stream_collect_sink is None:

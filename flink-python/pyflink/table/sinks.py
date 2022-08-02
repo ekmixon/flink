@@ -67,7 +67,7 @@ class CsvTableSink(TableSink):
         elif write_mode is None:
             j_write_mode = None
         else:
-            raise Exception('Unsupported write_mode: %s' % write_mode)
+            raise Exception(f'Unsupported write_mode: {write_mode}')
         j_csv_table_sink = gateway.jvm.CsvTableSink(
             path, field_delimiter, num_files, j_write_mode)
         j_field_names = java_utils.to_jarray(gateway.jvm.String, field_names)

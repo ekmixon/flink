@@ -49,7 +49,7 @@ class PassThroughLengthPrefixCoder(LengthPrefixCoder):
         return beam_coder_impl.PassThroughLengthPrefixCoderImpl(self._value_coder.get_impl())
 
     def __repr__(self):
-        return 'PassThroughLengthPrefixCoder[%s]' % self._value_coder
+        return f'PassThroughLengthPrefixCoder[{self._value_coder}]'
 
 
 Coder.register_structured_urn(
@@ -65,26 +65,24 @@ class FlinkCoder(FastCoder):
         return self._internal_coder.get_impl()
 
     def get_impl(self):
-        if isinstance(self._internal_coder, LengthPrefixBaseCoder):
-            if isinstance(self._internal_coder._field_coder, (ArrowCoder, OverWindowArrowCoder)):
-                from pyflink.fn_execution.beam.beam_coder_impl_slow import FlinkCoderBeamWrapper
-                return FlinkCoderBeamWrapper(self._create_impl())
-            else:
-                return FlinkLengthPrefixCoderBeamWrapper(self._create_impl())
-        else:
+        if not isinstance(self._internal_coder, LengthPrefixBaseCoder):
             return FlinkFieldCoderBeamWrapper(self._create_impl())
+        if not isinstance(
+            self._internal_coder._field_coder, (ArrowCoder, OverWindowArrowCoder)
+        ):
+            return FlinkLengthPrefixCoderBeamWrapper(self._create_impl())
+        from pyflink.fn_execution.beam.beam_coder_impl_slow import FlinkCoderBeamWrapper
+        return FlinkCoderBeamWrapper(self._create_impl())
 
     def to_type_hint(self):
         return typehints.Any
 
     @Coder.register_urn(FLINK_CODER_URN, CoderInfoDescriptor)
-    def _pickle_from_runner_api_parameter(
-            coder_info_descriptor_proto, unused_components, unused_context):
-        return FlinkCoder(LengthPrefixBaseCoder.from_coder_info_descriptor_proto(
-            coder_info_descriptor_proto))
+    def _pickle_from_runner_api_parameter(self, unused_components, unused_context):
+        return FlinkCoder(LengthPrefixBaseCoder.from_coder_info_descriptor_proto(self))
 
     def __repr__(self):
-        return 'FlinkCoder[%s]' % repr(self._internal_coder)
+        return f'FlinkCoder[{repr(self._internal_coder)}]'
 
     def __eq__(self, other: 'FlinkCoder'):
         return (self.__class__ == other.__class__

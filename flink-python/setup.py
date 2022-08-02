@@ -208,7 +208,9 @@ try:
             sys.exit(-1)
         flink_version = VERSION.replace(".dev0", "-SNAPSHOT")
         FLINK_HOME = os.path.abspath(
-            "../flink-dist/target/flink-%s-bin/flink-%s" % (flink_version, flink_version))
+            f"../flink-dist/target/flink-{flink_version}-bin/flink-{flink_version}"
+        )
+
         FLINK_ROOT = os.path.abspath("..")
         FLINK_DIST = os.path.join(FLINK_ROOT, "flink-dist")
         FLINK_BIN = os.path.join(FLINK_DIST, "src/main/flink-bin")
@@ -246,20 +248,21 @@ try:
             f.write("This file is used to force setuptools to include the log directory. "
                     "You can delete it at any time after installation.")
 
-    else:
-        if not os.path.isdir(SCRIPTS_TEMP_PATH):
-            print("The flink core files are not found. Please make sure your installation package "
-                  "is complete, or do this in the flink-python directory of the flink source "
-                  "directory.")
-            sys.exit(-1)
+    elif not os.path.isdir(SCRIPTS_TEMP_PATH):
+        print("The flink core files are not found. Please make sure your installation package "
+              "is complete, or do this in the flink-python directory of the flink source "
+              "directory.")
+        sys.exit(-1)
     if VERSION.find('dev0') != -1:
-        apache_flink_libraries_dependency = 'apache-flink-libraries==%s' % VERSION
+        apache_flink_libraries_dependency = f'apache-flink-libraries=={VERSION}'
     else:
         split_versions = VERSION.split('.')
         split_versions[-1] = str(int(split_versions[-1]) + 1)
         NEXT_VERSION = '.'.join(split_versions)
-        apache_flink_libraries_dependency = 'apache-flink-libraries>=%s,<%s' % \
-                                            (VERSION, NEXT_VERSION)
+        apache_flink_libraries_dependency = (
+            f'apache-flink-libraries>={VERSION},<{NEXT_VERSION}'
+        )
+
 
     script_names = ["pyflink-shell.sh", "find-flink-home.sh"]
     scripts = [os.path.join(SCRIPTS_TEMP_PATH, script) for script in script_names]
@@ -283,10 +286,12 @@ try:
                 'pyflink.bin']
 
     PACKAGE_DIR = {
-        'pyflink.conf': TEMP_PATH + '/conf',
-        'pyflink.log': TEMP_PATH + '/log',
-        'pyflink.examples': TEMP_PATH + '/examples',
-        'pyflink.bin': TEMP_PATH + '/bin'}
+        'pyflink.conf': f'{TEMP_PATH}/conf',
+        'pyflink.log': f'{TEMP_PATH}/log',
+        'pyflink.examples': f'{TEMP_PATH}/examples',
+        'pyflink.bin': f'{TEMP_PATH}/bin',
+    }
+
 
     PACKAGE_DATA = {
         'pyflink': ['README.txt'],

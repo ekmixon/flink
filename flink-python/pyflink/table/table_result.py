@@ -52,10 +52,7 @@ class TableResult(object):
         .. versionadded:: 1.11.0
         """
         job_client = self._j_table_result.getJobClient()
-        if job_client.isPresent():
-            return JobClient(job_client.get())
-        else:
-            return None
+        return JobClient(job_client.get()) if job_client.isPresent() else None
 
     def wait(self, timeout_ms: int = None):
         """
@@ -237,7 +234,7 @@ class CloseableIterator(object):
             raise StopIteration("No more data.")
         gateway = get_gateway()
         pickle_bytes = gateway.jvm.PythonBridgeUtils. \
-            getPickledBytesFromRow(self._j_closeable_iterator.next(),
+                getPickledBytesFromRow(self._j_closeable_iterator.next(),
                                    self._j_field_data_types)
         row_kind = RowKind(int.from_bytes(pickle_bytes[0], byteorder='big', signed=False))
         pickle_bytes = list(pickle_bytes[1:])

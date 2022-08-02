@@ -236,7 +236,7 @@ class Catalog(object):
     def list_partitions(self,
                         table_path: 'ObjectPath',
                         partition_spec: 'CatalogPartitionSpec' = None)\
-            -> List['CatalogPartitionSpec']:
+                -> List['CatalogPartitionSpec']:
         """
         Get CatalogPartitionSpec of all partitions of the table.
 
@@ -631,10 +631,7 @@ class CatalogDatabase(object):
         :return: An optional short description of the database.
         """
         description = self._j_catalog_database.getDescription()
-        if description.isPresent():
-            return description.get()
-        else:
-            return None
+        return description.get() if description.isPresent() else None
 
     def get_detailed_description(self) -> Optional[str]:
         """
@@ -643,10 +640,7 @@ class CatalogDatabase(object):
         :return: An optional long description of the database.
         """
         detailed_description = self._j_catalog_database.getDetailedDescription()
-        if detailed_description.isPresent():
-            return detailed_description.get()
-        else:
-            return None
+        return detailed_description.get() if detailed_description.isPresent() else None
 
 
 class CatalogBaseTable(object):
@@ -773,10 +767,7 @@ class CatalogBaseTable(object):
         :return: An optional short description of the table/view.
         """
         description = self._j_catalog_base_table.getDescription()
-        if description.isPresent():
-            return description.get()
-        else:
-            return None
+        return description.get() if description.isPresent() else None
 
     def get_detailed_description(self) -> Optional[str]:
         """
@@ -785,10 +776,7 @@ class CatalogBaseTable(object):
         :return: An optional long description of the table/view.
         """
         detailed_description = self._j_catalog_base_table.getDetailedDescription()
-        if detailed_description.isPresent():
-            return detailed_description.get()
-        else:
-            return None
+        return detailed_description.get() if detailed_description.isPresent() else None
 
 
 class CatalogPartition(object):
@@ -844,10 +832,7 @@ class CatalogPartition(object):
         :return: An optional short description of partition object.
         """
         description = self._j_catalog_partition.getDescription()
-        if description.isPresent():
-            return description.get()
-        else:
-            return None
+        return description.get() if description.isPresent() else None
 
     def get_detailed_description(self) -> Optional[str]:
         """
@@ -856,10 +841,7 @@ class CatalogPartition(object):
         :return: An optional long description of the partition object.
         """
         detailed_description = self._j_catalog_partition.getDetailedDescription()
-        if detailed_description.isPresent():
-            return detailed_description.get()
-        else:
-            return None
+        return detailed_description.get() if detailed_description.isPresent() else None
 
     def get_comment(self) -> str:
         """
@@ -933,10 +915,7 @@ class CatalogFunction(object):
         :return: An optional short description of function.
         """
         description = self._j_catalog_function.getDescription()
-        if description.isPresent():
-            return description.get()
-        else:
-            return None
+        return description.get() if description.isPresent() else None
 
     def get_detailed_description(self) -> Optional[str]:
         """
@@ -945,10 +924,7 @@ class CatalogFunction(object):
         :return: An optional long description of the function.
         """
         detailed_description = self._j_catalog_function.getDetailedDescription()
-        if detailed_description.isPresent():
-            return detailed_description.get()
-        else:
-            return None
+        return detailed_description.get() if detailed_description.isPresent() else None
 
     def is_generic(self) -> bool:
         """

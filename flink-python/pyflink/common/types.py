@@ -134,7 +134,7 @@ class Row(object):
                 elif isinstance(obj, list):
                     return [conv(o) for o in obj]
                 elif isinstance(obj, dict):
-                    return dict((k, conv(v)) for k, v in obj.items())
+                    return {k: conv(v) for k, v in obj.items()}
                 else:
                     return obj
 
@@ -152,10 +152,10 @@ class Row(object):
         self._fields = field_names
 
     def _is_retract_msg(self):
-        return self._row_kind == RowKind.UPDATE_BEFORE or self._row_kind == RowKind.DELETE
+        return self._row_kind in [RowKind.UPDATE_BEFORE, RowKind.DELETE]
 
     def _is_accumulate_msg(self):
-        return self._row_kind == RowKind.UPDATE_AFTER or self._row_kind == RowKind.INSERT
+        return self._row_kind in [RowKind.UPDATE_AFTER, RowKind.INSERT]
 
     @staticmethod
     def of_kind(row_kind: RowKind, *args, **kwargs):
@@ -211,13 +211,11 @@ class Row(object):
             # but this will not be used in normal cases
             idx = self._fields.index(item)
             return self[idx]
-        except IndexError:
-            raise AttributeError(item)
-        except ValueError:
+        except (IndexError, ValueError):
             raise AttributeError(item)
 
     def __setattr__(self, key, value):
-        if key != '_fields' and key != "_from_dict" and key != "_row_kind" and key != "_values":
+        if key not in ['_fields', "_from_dict", "_row_kind", "_values"]:
             raise AttributeError(key)
         self.__dict__[key] = value
 
@@ -238,7 +236,7 @@ class Row(object):
             return "Row(%s)" % ", ".join("%s=%r" % (k, v)
                                          for k, v in zip(self._fields, tuple(self)))
         else:
-            return "<Row(%s)>" % ", ".join("%r" % field for field in self)
+            return f'<Row({", ".join(("%r" % field for field in self))})>'
 
     def __eq__(self, other):
         if not isinstance(other, Row):
@@ -248,12 +246,11 @@ class Row(object):
                 return False
             if self._fields != other._fields:
                 return False
-        else:
-            if hasattr(other, "_fields"):
-                return False
+        elif hasattr(other, "_fields"):
+            return False
         return self.__class__ == other.__class__ and \
-            self._row_kind == other._row_kind and \
-            self._values == other._values
+                self._row_kind == other._row_kind and \
+                self._values == other._values
 
     def __hash__(self):
         return tuple(self).__hash__()

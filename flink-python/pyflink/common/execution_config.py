@@ -554,10 +554,12 @@ class ExecutionConfig(object):
         Configuration = gateway.jvm.org.apache.flink.configuration.Configuration
         j_global_job_parameters = Configuration()
         for key in global_job_parameters_dict:
-            if not isinstance(global_job_parameters_dict[key], str):
-                value = str(global_job_parameters_dict[key])
-            else:
-                value = global_job_parameters_dict[key]
+            value = (
+                global_job_parameters_dict[key]
+                if isinstance(global_job_parameters_dict[key], str)
+                else str(global_job_parameters_dict[key])
+            )
+
             j_global_job_parameters.setString(key, value)
         self._j_execution_config.setGlobalJobParameters(j_global_job_parameters)
         return self
@@ -650,10 +652,7 @@ class ExecutionConfig(object):
                  classes.
         """
         j_clz_map = self._j_execution_config.getRegisteredTypesWithKryoSerializerClasses()
-        registered_serializers = {}
-        for key in j_clz_map:
-            registered_serializers[key.getName()] = j_clz_map[key].getName()
-        return registered_serializers
+        return {key.getName(): j_clz_map[key].getName() for key in j_clz_map}
 
     def get_default_kryo_serializer_classes(self) -> Dict[str, str]:
         """
@@ -664,10 +663,7 @@ class ExecutionConfig(object):
                  Serializer classes.
         """
         j_clz_map = self._j_execution_config.getDefaultKryoSerializerClasses()
-        default_kryo_serializers = {}
-        for key in j_clz_map:
-            default_kryo_serializers[key.getName()] = j_clz_map[key].getName()
-        return default_kryo_serializers
+        return {key.getName(): j_clz_map[key].getName() for key in j_clz_map}
 
     def get_registered_kryo_types(self) -> List[str]:
         """

@@ -157,7 +157,7 @@ class SimpleNamespaceAggsHandleFunction(NamespaceAggsHandleFunction[N]):
         self._distinct_indexes = distinct_indexes
         self._distinct_view_descriptors = distinct_view_descriptors
         self._distinct_data_views = {}
-        self._get_value_indexes = [i for i in range(len(udfs))]
+        self._get_value_indexes = list(range(len(udfs)))
         if index_of_count_star >= 0 and count_star_inserted:
             # The record count is used internally, should be ignored by the get_value method.
             self._get_value_indexes.remove(index_of_count_star)
@@ -193,11 +193,13 @@ class SimpleNamespaceAggsHandleFunction(NamespaceAggsHandleFunction[N]):
                 if len(self._distinct_view_descriptors[i].get_filter_args()) == 0:
                     filtered = False
                 else:
-                    filtered = True
-                    for filter_arg in self._distinct_view_descriptors[i].get_filter_args():
-                        if input_data[filter_arg]:
-                            filtered = False
-                            break
+                    filtered = not any(
+                        input_data[filter_arg]
+                        for filter_arg in self._distinct_view_descriptors[
+                            i
+                        ].get_filter_args()
+                    )
+
                 if not filtered:
                     input_extractor = self._distinct_view_descriptors[i].get_input_extractor()
                     args = input_extractor(input_data)
@@ -210,12 +212,14 @@ class SimpleNamespaceAggsHandleFunction(NamespaceAggsHandleFunction[N]):
             input_extractor = self._input_extractors[i]
             args = input_extractor(input_data)
             if self._distinct_indexes[i] >= 0:
-                if args in self._distinct_data_views[self._distinct_indexes[i]]:
-                    if self._distinct_data_views[self._distinct_indexes[i]][args] > 1:
-                        continue
-                else:
+                if (
+                    args
+                    not in self._distinct_data_views[self._distinct_indexes[i]]
+                ):
                     raise Exception(
                         "The args are not in the distinct data view, this should not happen.")
+                if self._distinct_data_views[self._distinct_indexes[i]][args] > 1:
+                    continue
             self._udfs[i].accumulate(self._accumulators[i], *args)
 
     def retract(self, input_data: Row):
@@ -224,11 +228,13 @@ class SimpleNamespaceAggsHandleFunction(NamespaceAggsHandleFunction[N]):
                 if len(self._distinct_view_descriptors[i].get_filter_args()) == 0:
                     filtered = False
                 else:
-                    filtered = True
-                    for filter_arg in self._distinct_view_descriptors[i].get_filter_args():
-                        if input_data[filter_arg]:
-                            filtered = False
-                            break
+                    filtered = not any(
+                        input_data[filter_arg]
+                        for filter_arg in self._distinct_view_descriptors[
+                            i
+                        ].get_filter_args()
+                    )
+
                 if not filtered:
                     input_extractor = self._distinct_view_descriptors[i].get_input_extractor()
                     args = input_extractor(input_data)
@@ -241,7 +247,7 @@ class SimpleNamespaceAggsHandleFunction(NamespaceAggsHandleFunction[N]):
             input_extractor = self._input_extractors[i]
             args = input_extractor(input_data)
             if self._distinct_indexes[i] >= 0 and \
-                    args in self._distinct_data_views[self._distinct_indexes[i]]:
+                        args in self._distinct_data_views[self._distinct_indexes[i]]:
                 continue
             self._udfs[i].retract(self._accumulators[i], *args)
 
@@ -370,8 +376,9 @@ class GroupWindowAggFunctionBase(Generic[K, W]):
         result = []
         for window in actual_windows:
             self._trigger_context.window = window
-            trigger_result = self._trigger_context.on_element(input_row, timestamp)
-            if trigger_result:
+            if trigger_result := self._trigger_context.on_element(
+                input_row, timestamp
+            ):
                 result.append(self._emit_window_result(current_key, window))
             self._register_cleanup_timer(window)
         return result
@@ -416,12 +423,11 @@ class GroupWindowAggFunctionBase(Generic[K, W]):
     def to_utc_timestamp_mills(self, epoch_mills):
         if self._shift_timezone == "UTC":
             return epoch_mills
-        else:
-            timezone = pytz.timezone(self._shift_timezone)
-            local_date_time = datetime.datetime.fromtimestamp(epoch_mills / 1000., timezone)\
+        timezone = pytz.timezone(self._shift_timezone)
+        local_date_time = datetime.datetime.fromtimestamp(epoch_mills / 1000., timezone)\
                 .replace(tzinfo=None)
-            epoch = datetime.datetime.utcfromtimestamp(0)
-            return int((local_date_time - epoch).total_seconds() * 1000.0)
+        epoch = datetime.datetime.utcfromtimestamp(0)
+        return int((local_date_time - epoch).total_seconds() * 1000.0)
 
     def close(self):
         self._window_aggregator.close()
@@ -437,14 +443,14 @@ class GroupWindowAggFunctionBase(Generic[K, W]):
             self._trigger_context.register_processing_time_timer(cleanup_time)
 
     def cleanup_time(self, window: N) -> int:
-        if self._window_assigner.is_event_time():
-            cleanup_time = max(0, window.max_timestamp() + self._allowed_lateness)
-            if cleanup_time >= window.max_timestamp():
-                return cleanup_time
-            else:
-                return MAX_LONG_VALUE
-        else:
+        if not self._window_assigner.is_event_time():
             return max(0, window.max_timestamp())
+        cleanup_time = max(0, window.max_timestamp() + self._allowed_lateness)
+        return (
+            cleanup_time
+            if cleanup_time >= window.max_timestamp()
+            else MAX_LONG_VALUE
+        )
 
     @abstractmethod
     def _emit_window_result(self, key: List, window: W):

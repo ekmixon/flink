@@ -393,10 +393,7 @@ class StreamExecutionEnvironment(object):
         Gets the default savepoint directory for this Job.
         """
         j_path = self._j_stream_execution_environment.getDefaultSavepointDirectory()
-        if j_path is None:
-            return None
-        else:
-            return j_path.toString()
+        return None if j_path is None else j_path.toString()
 
     def set_restart_strategy(self, restart_strategy_configuration: RestartStrategyConfiguration):
         """
@@ -521,7 +518,7 @@ class StreamExecutionEnvironment(object):
         """
         jvm = get_gateway().jvm
         env_config = jvm.org.apache.flink.python.util.PythonConfigUtil\
-            .getEnvironmentConfig(self._j_stream_execution_environment)
+                .getEnvironmentConfig(self._j_stream_execution_environment)
         python_files = env_config.getString(jvm.PythonOptions.PYTHON_FILES.key(), None)
         if python_files is not None:
             python_files = jvm.PythonDependencyUtils.FILE_DELIMITER.join([file_path, python_files])
@@ -625,7 +622,7 @@ class StreamExecutionEnvironment(object):
             archive_path = jvm.PythonDependencyUtils.PARAM_DELIMITER.join(
                 [archive_path, target_dir])
         env_config = jvm.org.apache.flink.python.util.PythonConfigUtil \
-            .getEnvironmentConfig(self._j_stream_execution_environment)
+                .getEnvironmentConfig(self._j_stream_execution_environment)
         python_archives = env_config.getString(jvm.PythonOptions.PYTHON_ARCHIVES.key(), None)
         if python_archives is not None:
             python_files = jvm.PythonDependencyUtils.FILE_DELIMITER.join(
@@ -796,10 +793,7 @@ class StreamExecutionEnvironment(object):
         :param type_info: type of the returned stream. Optional.
         :return: the data stream constructed.
         """
-        if type_info:
-            j_type_info = type_info.get_java_type_info()
-        else:
-            j_type_info = None
+        j_type_info = type_info.get_java_type_info() if type_info else None
         j_data_stream = self._j_stream_execution_environment.addSource(source_func
                                                                        .get_java_function(),
                                                                        source_name,
@@ -826,10 +820,7 @@ class StreamExecutionEnvironment(object):
 
         .. versionadded:: 1.13.0
         """
-        if type_info:
-            j_type_info = type_info.get_java_type_info()
-        else:
-            j_type_info = None
+        j_type_info = type_info.get_java_type_info() if type_info else None
         j_data_stream = self._j_stream_execution_environment.fromSource(
             source.get_java_function(),
             watermark_strategy._j_watermark_strategy,
@@ -889,7 +880,7 @@ class StreamExecutionEnvironment(object):
             # Since flink python module depends on table module, we can make use of utils of it when
             # implementing python DataStream API.
             PythonTableUtils = gateway.jvm\
-                .org.apache.flink.table.planner.utils.python.PythonTableUtils
+                    .org.apache.flink.table.planner.utils.python.PythonTableUtils
             execution_config = self._j_stream_execution_environment.getConfig()
             j_input_format = PythonTableUtils.getCollectionInputFormat(
                 j_objs,
@@ -898,7 +889,7 @@ class StreamExecutionEnvironment(object):
             )
 
             JInputFormatSourceFunction = gateway.jvm.org.apache.flink.streaming.api.functions.\
-                source.InputFormatSourceFunction
+                    source.InputFormatSourceFunction
             JBoundedness = gateway.jvm.org.apache.flink.api.connector.source.Boundedness
 
             j_data_stream_source = invoke_method(

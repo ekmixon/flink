@@ -68,9 +68,11 @@ class PandasConversionTestBase(object):
 
     @classmethod
     def create_pandas_data_frame(cls):
-        data_dict = {}
-        for j, name in enumerate(cls.data_type.names):
-            data_dict[name] = [cls.data[i][j] for i in range(len(cls.data))]
+        data_dict = {
+            name: [cls.data[i][j] for i in range(len(cls.data))]
+            for j, name in enumerate(cls.data_type.names)
+        }
+
         # need convert to numpy types
         import numpy as np
         data_dict["f1"] = np.int8(data_dict["f1"])
@@ -194,7 +196,7 @@ class StreamPandasConversionTests(PandasConversionITTests,
             '2018-03-11 04:20:00',
             '2018-03-11 03:30:00'
         ]
-        source_path = tmp_dir + '/test_to_pandas_with_event_time.csv'
+        source_path = f'{tmp_dir}/test_to_pandas_with_event_time.csv'
         with open(source_path, 'w') as fd:
             for ele in data:
                 fd.write(ele + '\n')

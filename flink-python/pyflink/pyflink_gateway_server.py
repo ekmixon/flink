@@ -77,14 +77,15 @@ def construct_log_settings():
     else:
         flink_ident_string = getpass.getuser()
     hostname = socket.gethostname()
-    log_settings = []
-    for template in templates:
-        log_settings.append(Template(template).substitute(
+    return [
+        Template(template).substitute(
             flink_conf_dir=flink_conf_dir,
             flink_log_dir=flink_log_dir,
             flink_ident_string=flink_ident_string,
-            hostname=hostname))
-    return log_settings
+            hostname=hostname,
+        )
+        for template in templates
+    ]
 
 
 def construct_classpath():
@@ -110,8 +111,10 @@ def construct_classpath():
 
     flink_python_jars = glob.glob(os.path.join(flink_opt_directory, "flink-python*.jar"))
     if len(flink_python_jars) < 1:
-        print("The flink-python jar is not found in the opt folder of the FLINK_HOME: %s" %
-              flink_home)
+        print(
+            f"The flink-python jar is not found in the opt folder of the FLINK_HOME: {flink_home}"
+        )
+
         return lib_jars
     flink_python_jar = flink_python_jars[0]
 
@@ -136,20 +139,28 @@ def download_apache_avro():
         [mvn, "help:evaluate", "-Dexpression=avro.version"],
         cwd=flink_source_root).decode("utf-8")
     lines = avro_version_output.replace("\r", "").split("\n")
-    avro_version = None
-    for line in lines:
-        if line.strip() != "" and re.match(r'^[0-9]+\.[0-9]+(\.[0-9]+)?$', line.strip()):
-            avro_version = line
-            break
+    avro_version = next(
+        (
+            line
+            for line in lines
+            if line.strip() != ""
+            and re.match(r'^[0-9]+\.[0-9]+(\.[0-9]+)?$', line.strip())
+        ),
+        None,
+    )
+
     if avro_version is None:
         raise Exception("The Apache Avro version is not found in the maven command output:\n %s" %
                         avro_version_output)
     check_output(
-        [mvn,
-         "org.apache.maven.plugins:maven-dependency-plugin:2.10:copy",
-         "-Dartifact=org.apache.avro:avro:%s:jar" % avro_version,
-         "-DoutputDirectory=%s/flink-formats/flink-avro/target" % flink_source_root],
-        cwd=flink_source_root)
+        [
+            mvn,
+            "org.apache.maven.plugins:maven-dependency-plugin:2.10:copy",
+            f"-Dartifact=org.apache.avro:avro:{avro_version}:jar",
+            f"-DoutputDirectory={flink_source_root}/flink-formats/flink-avro/target",
+        ],
+        cwd=flink_source_root,
+    )
 
 
 def construct_test_classpath():

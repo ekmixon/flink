@@ -37,7 +37,7 @@ class TypeSerializer(ABC, Generic[T]):
         return not self.__eq__(other)
 
     def __repr__(self):
-        return "%s()" % self.__class__.__name__
+        return f"{self.__class__.__name__}()"
 
     def __hash__(self):
         return hash(str(self))

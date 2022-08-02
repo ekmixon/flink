@@ -54,7 +54,7 @@ class SqlDialect(object):
         elif j_sql_dialect == JSqlDialect.HIVE:
             return SqlDialect.HIVE
         else:
-            raise Exception("Unsupported Java SQL dialect: %s" % j_sql_dialect)
+            raise Exception(f"Unsupported Java SQL dialect: {j_sql_dialect}")
 
     @staticmethod
     def _to_j_sql_dialect(sql_dialect):

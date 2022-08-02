@@ -91,10 +91,9 @@ class LengthPrefixBaseCoder(ABC):
                 cls._to_arrow_schema(row_type), row_type, timezone)
         elif coder_info_descriptor_proto.HasField('raw_type'):
             type_info_proto = coder_info_descriptor_proto.raw_type.type_info
-            field_coder = from_type_info_proto(type_info_proto)
-            return field_coder
+            return from_type_info_proto(type_info_proto)
         else:
-            raise ValueError("Unexpected coder type %s" % coder_info_descriptor_proto)
+            raise ValueError(f"Unexpected coder type {coder_info_descriptor_proto}")
 
     @classmethod
     def _to_arrow_schema(cls, row_type):
@@ -130,7 +129,7 @@ class LengthPrefixBaseCoder(ABC):
         elif field_type.type_name == flink_fn_execution_pb2.Schema.TIME:
             return TimeType(field_type.time_info.precision, field_type.nullable)
         elif field_type.type_name == \
-                flink_fn_execution_pb2.Schema.LOCAL_ZONED_TIMESTAMP:
+                    flink_fn_execution_pb2.Schema.LOCAL_ZONED_TIMESTAMP:
             return LocalZonedTimestampType(field_type.local_zoned_timestamp_info.precision,
                                            field_type.nullable)
         elif field_type.type_name == flink_fn_execution_pb2.Schema.TIMESTAMP:
@@ -143,7 +142,7 @@ class LengthPrefixBaseCoder(ABC):
                 [RowField(f.name, cls._to_data_type(f.type), f.description)
                  for f in field_type.row_schema.fields], field_type.nullable)
         else:
-            raise ValueError("field_type %s is not supported." % field_type)
+            raise ValueError(f"field_type {field_type} is not supported.")
 
     @classmethod
     def _to_row_type(cls, row_schema):
@@ -160,14 +159,13 @@ class IterableCoder(LengthPrefixBaseCoder):
         self._separated_with_end_message = separated_with_end_message
 
     def get_impl(self):
-        if isinstance(self._field_coder, (ArrowCoder, OverWindowArrowCoder)):
-            # ArrowCoder and OverWindowArrowCoder doesn't support fast coder currently.
-            from pyflink.fn_execution import coder_impl_slow
-            return coder_impl_slow.IterableCoderImpl(self._field_coder.get_impl(),
-                                                     self._separated_with_end_message)
-        else:
+        if not isinstance(self._field_coder, (ArrowCoder, OverWindowArrowCoder)):
             return coder_impl.IterableCoderImpl(self._field_coder.get_impl(),
                                                 self._separated_with_end_message)
+        # ArrowCoder and OverWindowArrowCoder doesn't support fast coder currently.
+        from pyflink.fn_execution import coder_impl_slow
+        return coder_impl_slow.IterableCoderImpl(self._field_coder.get_impl(),
+                                                 self._separated_with_end_message)
 
 
 class ValueCoder(LengthPrefixBaseCoder):
@@ -179,12 +177,11 @@ class ValueCoder(LengthPrefixBaseCoder):
         super(ValueCoder, self).__init__(field_coder)
 
     def get_impl(self):
-        if isinstance(self._field_coder, (ArrowCoder, OverWindowArrowCoder)):
-            # ArrowCoder and OverWindowArrowCoder doesn't support fast coder currently.
-            from pyflink.fn_execution import coder_impl_slow
-            return coder_impl_slow.ValueCoderImpl(self._field_coder.get_impl())
-        else:
+        if not isinstance(self._field_coder, (ArrowCoder, OverWindowArrowCoder)):
             return coder_impl.ValueCoderImpl(self._field_coder.get_impl())
+        # ArrowCoder and OverWindowArrowCoder doesn't support fast coder currently.
+        from pyflink.fn_execution import coder_impl_slow
+        return coder_impl_slow.ValueCoderImpl(self._field_coder.get_impl())
 
 
 #########################################################################
@@ -214,7 +211,7 @@ class FlattenRowCoder(FieldCoder):
         return coder_impl.FlattenRowCoderImpl([c.get_impl() for c in self._field_coders])
 
     def __repr__(self):
-        return 'FlattenRowCoder[%s]' % ', '.join(str(c) for c in self._field_coders)
+        return f"FlattenRowCoder[{', '.join((str(c) for c in self._field_coders))}]"
 
     def __eq__(self, other: 'FlattenRowCoder'):
         return (self.__class__ == other.__class__
@@ -245,7 +242,7 @@ class ArrowCoder(FieldCoder):
         return coder_impl_slow.ArrowCoderImpl(self._schema, self._row_type, self._timezone)
 
     def __repr__(self):
-        return 'ArrowCoder[%s]' % self._schema
+        return f'ArrowCoder[{self._schema}]'
 
 
 class OverWindowArrowCoder(FieldCoder):
@@ -262,7 +259,7 @@ class OverWindowArrowCoder(FieldCoder):
         return coder_impl_slow.OverWindowArrowCoderImpl(self._arrow_coder.get_impl())
 
     def __repr__(self):
-        return 'OverWindowArrowCoder[%s]' % self._arrow_coder
+        return f'OverWindowArrowCoder[{self._arrow_coder}]'
 
 
 class RowCoder(FieldCoder):
@@ -279,7 +276,7 @@ class RowCoder(FieldCoder):
                                        self._field_names)
 
     def __repr__(self):
-        return 'RowCoder[%s]' % ', '.join(str(c) for c in self._field_coders)
+        return f"RowCoder[{', '.join((str(c) for c in self._field_coders))}]"
 
     def __eq__(self, other: 'RowCoder'):
         return (self.__class__ == other.__class__
@@ -310,7 +307,7 @@ class CollectionCoder(FieldCoder):
                 and self._elem_coder == other._elem_coder)
 
     def __repr__(self):
-        return '%s[%s]' % (self.__class__.__name__, repr(self._elem_coder))
+        return f'{self.__class__.__name__}[{repr(self._elem_coder)}]'
 
     def __ne__(self, other):
         return not self == other
@@ -359,7 +356,7 @@ class MapCoder(FieldCoder):
         return self._key_coder.is_deterministic() and self._value_coder.is_deterministic()
 
     def __repr__(self):
-        return 'MapCoder[%s]' % ','.join([repr(self._key_coder), repr(self._value_coder)])
+        return f"MapCoder[{','.join([repr(self._key_coder), repr(self._value_coder)])}]"
 
     def __eq__(self, other: 'MapCoder'):
         return (self.__class__ == other.__class__
@@ -570,7 +567,7 @@ class TupleCoder(FieldCoder):
         return coder_impl.TupleCoderImpl([c.get_impl() for c in self._field_coders])
 
     def __repr__(self):
-        return 'TupleCoder[%s]' % ', '.join(str(c) for c in self._field_coders)
+        return f"TupleCoder[{', '.join((str(c) for c in self._field_coders))}]"
 
     def __eq__(self, other: 'TupleCoder'):
         return (self.__class__ == other.__class__ and
@@ -654,7 +651,7 @@ def from_proto(field_type):
         return DecimalCoder(field_type.decimal_info.precision,
                             field_type.decimal_info.scale)
     else:
-        raise ValueError("field_type %s is not supported." % field_type)
+        raise ValueError(f"field_type {field_type} is not supported.")
 
 
 # for data stream type information.
@@ -703,7 +700,7 @@ def from_type_info_proto(type_info):
             return MapCoder(from_type_info_proto(type_info.map_type_info.key_type),
                             from_type_info_proto(type_info.map_type_info.value_type))
         else:
-            raise ValueError("Unsupported type_info %s." % type_info)
+            raise ValueError(f"Unsupported type_info {type_info}.")
 
 
 _basic_type_info_mappings = {
@@ -756,8 +753,10 @@ def from_type_info(type_info: TypeInformation) -> FieldCoder:
     elif isinstance(type_info, RowTypeInfo):
         return RowCoder(
             [from_type_info(f) for f in type_info.get_field_types()],
-            [f for f in type_info.get_field_names()])
+            list(type_info.get_field_names()),
+        )
+
     elif isinstance(type_info, ExternalTypeInfo):
         return from_type_info(type_info._type_info)
     else:
-        raise ValueError("Unsupported type_info %s." % type_info)
+        raise ValueError(f"Unsupported type_info {type_info}.")

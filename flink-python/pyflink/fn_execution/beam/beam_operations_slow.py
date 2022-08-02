@@ -39,10 +39,7 @@ class FunctionOperation(Operation):
         self.operation = self.generate_operation()
         self.process_element = self.operation.process_element
         self.operation.open()
-        if spec.serialized_fn.profile_enabled:
-            self._profiler = Profiler()
-        else:
-            self._profiler = None
+        self._profiler = Profiler() if spec.serialized_fn.profile_enabled else None
 
     def setup(self):
         super(FunctionOperation, self).setup()

@@ -130,7 +130,7 @@ class TumblingWindowAssigner(WindowAssigner[TimeWindow]):
         return self._is_event_time
 
     def __repr__(self):
-        return "TumblingWindow(%s)" % self._size
+        return f"TumblingWindow({self._size})"
 
 
 class CountTumblingWindowAssigner(WindowAssigner[CountWindow]):
@@ -149,10 +149,7 @@ class CountTumblingWindowAssigner(WindowAssigner[CountWindow]):
 
     def assign_windows(self, element: List, timestamp: int) -> Iterable[CountWindow]:
         count_value = self._count.value()
-        if count_value is None:
-            current_count = 0
-        else:
-            current_count = count_value
+        current_count = 0 if count_value is None else count_value
         id = current_count // self._size
         self._count.update(current_count + 1)
         return [CountWindow(id)]
@@ -161,7 +158,7 @@ class CountTumblingWindowAssigner(WindowAssigner[CountWindow]):
         return False
 
     def __repr__(self):
-        return "CountTumblingWindow(%s)" % self._size
+        return f"CountTumblingWindow({self._size})"
 
 
 class SlidingWindowAssigner(PanedWindowAssigner[TimeWindow]):
@@ -184,7 +181,7 @@ class SlidingWindowAssigner(PanedWindowAssigner[TimeWindow]):
 
     def split_into_panes(self, window: W) -> Iterable[TimeWindow]:
         start = window.start
-        for i in range(self._num_panes_per_window):
+        for _ in range(self._num_panes_per_window):
             yield TimeWindow(start, start + self._pane_size)
             start += self._pane_size
 
@@ -194,15 +191,16 @@ class SlidingWindowAssigner(PanedWindowAssigner[TimeWindow]):
 
     def assign_windows(self, element: List, timestamp: int) -> Iterable[TimeWindow]:
         last_start = TimeWindow.get_window_start_with_offset(timestamp, self._offset, self._slide)
-        windows = [TimeWindow(start, start + self._size)
-                   for start in range(last_start, timestamp - self._size, -self._slide)]
-        return windows
+        return [
+            TimeWindow(start, start + self._size)
+            for start in range(last_start, timestamp - self._size, -self._slide)
+        ]
 
     def is_event_time(self) -> bool:
         return self._is_event_time
 
     def __repr__(self):
-        return "SlidingWindowAssigner(%s, %s)" % (self._size, self._slide)
+        return f"SlidingWindowAssigner({self._size}, {self._slide})"
 
 
 class CountSlidingWindowAssigner(WindowAssigner[CountWindow]):
@@ -222,18 +220,14 @@ class CountSlidingWindowAssigner(WindowAssigner[CountWindow]):
 
     def assign_windows(self, element: List, timestamp: int) -> Iterable[W]:
         count_value = self._count.value()
-        if count_value is None:
-            current_count = 0
-        else:
-            current_count = count_value
+        current_count = 0 if count_value is None else count_value
         self._count.update(current_count + 1)
         last_id = current_count // self._slide
         last_start = last_id * self._slide
         last_end = last_start + self._size - 1
         windows = []
         while last_id >= 0 and last_start <= current_count <= last_end:
-            if last_start <= current_count <= last_end:
-                windows.append(CountWindow(last_id))
+            windows.append(CountWindow(last_id))
             last_id -= 1
             last_start -= self._slide
             last_end -= self._slide
@@ -243,7 +237,7 @@ class CountSlidingWindowAssigner(WindowAssigner[CountWindow]):
         return False
 
     def __repr__(self):
-        return "CountSlidingWindowAssigner(%s, %s)" % (self._size, self._slide)
+        return f"CountSlidingWindowAssigner({self._size}, {self._slide})"
 
 
 class SessionWindowAssigner(MergingWindowAssigner[TimeWindow]):
@@ -280,13 +274,17 @@ class SessionWindowAssigner(MergingWindowAssigner[TimeWindow]):
     def _ceiling_window(new_window: TimeWindow, sorted_windows: List[TimeWindow]):
         if not sorted_windows:
             return None
-        window_num = len(sorted_windows)
         if sorted_windows[0] >= new_window:
             return None
-        for i in range(window_num - 1):
-            if sorted_windows[i] <= new_window <= sorted_windows[i + 1]:
-                return sorted_windows[i]
-        return sorted_windows[window_num - 1]
+        window_num = len(sorted_windows)
+        return next(
+            (
+                sorted_windows[i]
+                for i in range(window_num - 1)
+                if sorted_windows[i] <= new_window <= sorted_windows[i + 1]
+            ),
+            sorted_windows[window_num - 1],
+        )
 
     @staticmethod
     def _floor_window(new_window: TimeWindow, sorted_windows: List[TimeWindow]):
@@ -295,10 +293,14 @@ class SessionWindowAssigner(MergingWindowAssigner[TimeWindow]):
         window_num = len(sorted_windows)
         if sorted_windows[window_num - 1] <= new_window:
             return None
-        for i in range(window_num - 1):
-            if sorted_windows[i] <= new_window <= sorted_windows[i + 1]:
-                return sorted_windows[i + 1]
-        return sorted_windows[0]
+        return next(
+            (
+                sorted_windows[i + 1]
+                for i in range(window_num - 1)
+                if sorted_windows[i] <= new_window <= sorted_windows[i + 1]
+            ),
+            sorted_windows[0],
+        )
 
     # Merge curWindow and other, return a new window which covers curWindow and other if they are
     # overlapped. Otherwise, returns the curWindow itself.
@@ -311,4 +313,4 @@ class SessionWindowAssigner(MergingWindowAssigner[TimeWindow]):
             return cur_window
 
     def __repr__(self):
-        return "SessionWindowAssigner(%s)" % self._session_gap
+        return f"SessionWindowAssigner({self._session_gap})"

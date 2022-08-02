@@ -55,10 +55,7 @@ class TableDescriptor(object):
 
     def get_schema(self) -> Optional[Schema]:
         j_schema = self._j_table_descriptor.getSchema()
-        if j_schema.isPresent():
-            return Schema(j_schema.get())
-        else:
-            return None
+        return Schema(j_schema.get()) if j_schema.isPresent() else None
 
     def get_options(self) -> Dict[str, str]:
         return self._j_table_descriptor.getOptions()
@@ -68,10 +65,7 @@ class TableDescriptor(object):
 
     def get_comment(self) -> Optional[str]:
         j_comment = self._j_table_descriptor.getComment()
-        if j_comment.isPresent():
-            return j_comment.get()
-        else:
-            return None
+        return j_comment.get() if j_comment.isPresent() else None
 
     def __str__(self):
         return self._j_table_descriptor.toString()
@@ -147,12 +141,11 @@ class TableDescriptor(object):
                     self._j_builder.format(format)
                 else:
                     self._j_builder.format(format._j_format_descriptor)
+            elif isinstance(format, str):
+                self._j_builder.format(format_option._j_config_option, format)
             else:
-                if isinstance(format, str):
-                    self._j_builder.format(format_option._j_config_option, format)
-                else:
-                    self._j_builder.format(
-                        format_option._j_config_option, format._j_format_descriptor)
+                self._j_builder.format(
+                    format_option._j_config_option, format._j_format_descriptor)
             return self
 
         def partitioned_by(self, *partition_keys: str) -> 'TableDescriptor.Builder':

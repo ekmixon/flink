@@ -72,8 +72,7 @@ class Instant(object):
 
     @staticmethod
     def of_epoch_milli(epoch_milli: int) -> 'Instant':
-        secs = epoch_milli // 1000
-        mos = epoch_milli % 1000
+        secs, mos = divmod(epoch_milli, 1000)
         return Instant(secs, mos * 1000_000)
 
     def __eq__(self, other):
@@ -82,4 +81,4 @@ class Instant(object):
                 self.nanos == other.nanos)
 
     def __repr__(self):
-        return 'Instant<{}, {}>'.format(self.seconds, self.nanos)
+        return f'Instant<{self.seconds}, {self.nanos}>'

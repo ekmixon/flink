@@ -159,7 +159,10 @@ class DataStreamTests(object):
         self.assertEqual(expected, results)
 
     def test_connected_streams_with_dependency(self):
-        python_file_dir = os.path.join(self.tempdir, "python_file_dir_" + str(uuid.uuid4()))
+        python_file_dir = os.path.join(
+            self.tempdir, f"python_file_dir_{str(uuid.uuid4())}"
+        )
+
         os.mkdir(python_file_dir)
         python_file_path = os.path.join(python_file_dir, "test_stream_dependency_manage_lib.py")
         with open(python_file_path, 'w') as f:
@@ -202,7 +205,7 @@ class DataStreamTests(object):
     def test_key_by_and_co_map(self):
         ds1 = self.env.from_collection([('a', 0), ('b', 0), ('c', 1), ('d', 1), ('e', 2)],
                                        type_info=Types.ROW([Types.STRING(), Types.INT()])) \
-            .key_by(MyKeySelector(), key_type=Types.INT())
+                .key_by(MyKeySelector(), key_type=Types.INT())
         ds2 = self.env.from_collection([('a', 0), ('b', 0), ('c', 1), ('d', 1), ('e', 2)],
                                        type_info=Types.ROW([Types.STRING(), Types.INT()]))
 
@@ -234,9 +237,9 @@ class DataStreamTests(object):
                 return value
 
         ds1.connect(ds2)\
-            .key_by(MyKeySelector(), MyKeySelector(), key_type=Types.INT())\
-            .map(AssertKeyCoMapFunction())\
-            .add_sink(self.test_sink)
+                .key_by(MyKeySelector(), MyKeySelector(), key_type=Types.INT())\
+                .map(AssertKeyCoMapFunction())\
+                .add_sink(self.test_sink)
 
         self.env.execute('key_by_test')
         results = self.test_sink.get_results(True)
@@ -252,7 +255,7 @@ class DataStreamTests(object):
         ds = self.env.from_collection([('a', 0), ('ab', 1), ('bdc', 2), ('cfgs', 3), ('deeefg', 4)],
                                       type_info=Types.ROW([Types.STRING(), Types.INT()]))
         ds.flat_map(MyFlatMapFunction(), output_type=Types.ROW([Types.STRING(), Types.INT()]))\
-            .add_sink(self.test_sink)
+                .add_sink(self.test_sink)
 
         self.env.execute('flat_map_test')
         results = self.test_sink.get_results(False)
@@ -352,17 +355,13 @@ class DataStreamTests(object):
         ds = self.env.from_collection(test_data)
 
         expected = test_data[:3]
-        actual = []
-        for result in ds.execute_and_collect(limit=3):
-            actual.append(result)
+        actual = list(ds.execute_and_collect(limit=3))
         self.assertEqual(expected, actual)
 
         expected = test_data
         ds = self.env.from_collection(collection=test_data, type_info=Types.STRING())
         with ds.execute_and_collect() as results:
-            actual = []
-            for result in results:
-                actual.append(result)
+            actual = list(results)
             self.assertEqual(expected, actual)
 
         test_data = [(1, None, 1, True, 32767, -2147483648, 1.23, 1.98932,
@@ -388,8 +387,7 @@ class DataStreamTests(object):
         expected = test_data
         ds = self.env.from_collection(test_data).map(lambda a: a)
         with ds.execute_and_collect() as results:
-            actual = [result for result in results]
-            actual.sort()
+            actual = sorted(results)
             expected.sort()
             self.assertEqual(expected, actual)
 
@@ -407,6 +405,8 @@ class DataStreamTests(object):
         with self.assertRaises(Exception):
             keyed_stream.name("keyed stream")
 
+
+
         class AssertKeyMapFunction(MapFunction):
             def __init__(self):
                 self.state = None
@@ -418,11 +418,7 @@ class DataStreamTests(object):
             def map(self, value):
                 if value[0] == 'a':
                     pass
-                elif value[0] == 'b':
-                    state_value = self._get_state_value()
-                    assert state_value == 1
-                    self.state.update(state_value)
-                elif value[0] == 'c':
+                elif value[0] in ['b', 'c']:
                     state_value = self._get_state_value()
                     assert state_value == 1
                     self.state.update(state_value)
@@ -430,8 +426,6 @@ class DataStreamTests(object):
                     state_value = self._get_state_value()
                     assert state_value == 2
                     self.state.update(state_value)
-                else:
-                    pass
                 return value
 
             def _get_state_value(self):
@@ -441,6 +435,7 @@ class DataStreamTests(object):
                 else:
                     state_value += 1
                 return state_value
+
 
         keyed_stream.map(AssertKeyMapFunction()).add_sink(self.test_sink)
         self.env.execute('key_by_test')
@@ -544,7 +539,7 @@ class DataStreamTests(object):
         ds = self.env.from_collection([('a', 0), ('b', 0), ('c', 1), ('d', 1), ('e', 2)],
                                       type_info=Types.ROW([Types.STRING(), Types.INT()]))
         ds.key_by(MyKeySelector(), key_type=Types.INT()).key_by(lambda x: x[0])\
-            .add_sink(self.test_sink)
+                .add_sink(self.test_sink)
 
         self.env.execute("test multi key by")
         results = self.test_sink.get_results(False)
@@ -578,7 +573,7 @@ class DataStreamTests(object):
 
         ds.map(lambda x: x, output_type=Types.ROW([Types.INT(),
                                                    Types.PRIMITIVE_ARRAY(Types.FLOAT())]))\
-            .add_sink(self.test_sink)
+                .add_sink(self.test_sink)
         self.env.execute("test primitive array type info")
         results = self.test_sink.get_results()
         expected = ['+I[1, [1.1, 1.2, 1.3]]', '+I[2, [2.1, 2.2, 2.3]]', '+I[3, [3.1, 3.2, 3.3]]']
@@ -597,7 +592,7 @@ class DataStreamTests(object):
         ds.map(lambda x: x, output_type=Types.ROW([Types.INT(),
                                                    Types.BASIC_ARRAY(Types.FLOAT()),
                                                    Types.BASIC_ARRAY(Types.STRING())]))\
-            .add_sink(self.test_sink)
+                .add_sink(self.test_sink)
         self.env.execute("test basic array type info")
         results = self.test_sink.get_results()
         expected = ['+I[1, [1.1, null, 1.3], [null, hi, flink]]',
@@ -618,7 +613,7 @@ class DataStreamTests(object):
         ds.map(lambda x: x, output_type=Types.ROW([Types.INT(),
                                                    Types.OBJECT_ARRAY(Types.FLOAT()),
                                                    Types.OBJECT_ARRAY(Types.STRING())]))\
-            .add_sink(self.test_sink)
+                .add_sink(self.test_sink)
         self.env.execute("test basic array type info")
         results = self.test_sink.get_results()
         expected = ['+I[1, [1.1, null, 1.3], [null, hi, flink]]',
@@ -655,18 +650,21 @@ class DataStreamTests(object):
                                                 (4, '1603708289000')],
                                                type_info=Types.ROW([Types.INT(), Types.STRING()]))
 
+
+
         class MyProcessFunction(ProcessFunction):
 
             def process_element(self, value, ctx):
                 current_timestamp = ctx.timestamp()
                 current_watermark = ctx.timer_service().current_watermark()
-                yield "current timestamp: {}, current watermark: {}, current_value: {}"\
-                    .format(str(current_timestamp), str(current_watermark), str(value))
+                yield f"current timestamp: {str(current_timestamp)}, current watermark: {str(current_watermark)}, current_value: {str(value)}"
+
+
 
         watermark_strategy = WatermarkStrategy.for_monotonous_timestamps()\
-            .with_timestamp_assigner(SecondColumnTimestampAssigner())
+                .with_timestamp_assigner(SecondColumnTimestampAssigner())
         data_stream.assign_timestamps_and_watermarks(watermark_strategy)\
-            .process(MyProcessFunction(), output_type=Types.STRING()).add_sink(self.test_sink)
+                .process(MyProcessFunction(), output_type=Types.STRING()).add_sink(self.test_sink)
         self.env.execute('test process function')
         result = self.test_sink.get_results()
         expected_result = ["current timestamp: 1603708211000, current watermark: "
@@ -699,6 +697,8 @@ class DataStreamTests(object):
             def extract_timestamp(self, value, record_timestamp) -> int:
                 return int(value[2])
 
+
+
         class MyProcessFunction(KeyedProcessFunction):
 
             def __init__(self):
@@ -717,30 +717,25 @@ class DataStreamTests(object):
             def process_element(self, value, ctx):
                 current_value = self.value_state.value()
                 self.value_state.update(value[0])
-                current_list = [_ for _ in self.list_state.get()]
+                current_list = list(self.list_state.get())
                 self.list_state.add(value[0])
-                map_entries_string = []
-                for k, v in self.map_state.items():
-                    map_entries_string.append(str(k) + ': ' + str(v))
+                map_entries_string = [f'{str(k)}: {str(v)}' for k, v in self.map_state.items()]
                 map_entries_string = '{' + ', '.join(map_entries_string) + '}'
                 self.map_state.put(value[0], value[1])
                 current_key = ctx.get_current_key()
-                yield "current key: {}, current value state: {}, current list state: {}, " \
-                      "current map state: {}, current value: {}".format(str(current_key),
-                                                                        str(current_value),
-                                                                        str(current_list),
-                                                                        map_entries_string,
-                                                                        str(value))
+                yield f"current key: {str(current_key)}, current value state: {str(current_value)}, current list state: {current_list}, current map state: {map_entries_string}, current value: {str(value)}"
+
 
             def on_timer(self, timestamp, ctx):
                 pass
 
+
         watermark_strategy = WatermarkStrategy.for_monotonous_timestamps() \
-            .with_timestamp_assigner(MyTimestampAssigner())
+                .with_timestamp_assigner(MyTimestampAssigner())
         data_stream.assign_timestamps_and_watermarks(watermark_strategy) \
-            .key_by(lambda x: x[1], key_type=Types.STRING()) \
-            .process(MyProcessFunction(), output_type=Types.STRING()) \
-            .add_sink(self.test_sink)
+                .key_by(lambda x: x[1], key_type=Types.STRING()) \
+                .process(MyProcessFunction(), output_type=Types.STRING()) \
+                .add_sink(self.test_sink)
         self.env.execute('test time stamp assigner with keyed process function')
         result = self.test_sink.get_results()
         expected_result = ["current key: hi, current value state: None, current list state: [], "
@@ -786,8 +781,8 @@ class DataStreamTests(object):
                 yield self.reducing_state.get(), value[1]
 
         data_stream.key_by(lambda x: x[1], key_type=Types.STRING()) \
-            .process(MyProcessFunction(), output_type=Types.TUPLE([Types.INT(), Types.STRING()])) \
-            .add_sink(self.test_sink)
+                .process(MyProcessFunction(), output_type=Types.TUPLE([Types.INT(), Types.STRING()])) \
+                .add_sink(self.test_sink)
         self.env.execute('test_reducing_state')
         result = self.test_sink.get_results()
         expected_result = ['(1,hi)', '(2,hello)', '(4,hi)', '(6,hello)', '(9,hi)', '(12,hello)']
@@ -830,8 +825,8 @@ class DataStreamTests(object):
                 yield self.aggregating_state.get(), value[1]
 
         data_stream.key_by(lambda x: x[1], key_type=Types.STRING()) \
-            .process(MyProcessFunction(), output_type=Types.TUPLE([Types.INT(), Types.STRING()])) \
-            .add_sink(self.test_sink)
+                .process(MyProcessFunction(), output_type=Types.TUPLE([Types.INT(), Types.STRING()])) \
+                .add_sink(self.test_sink)
         self.env.execute('test_aggregating_state')
         result = self.test_sink.get_results()
         expected_result = ['(1,hi)', '(2,hello)', '(4,hi)', '(6,hello)', '(9,hi)', '(12,hello)']
@@ -845,9 +840,9 @@ class DataStreamTests(object):
             (1, 'hi'), (2, 'hello'), (3, 'hi'), (4, 'hello'), (5, 'hi'), (6, 'hello')],
             type_info=Types.TUPLE([Types.INT(), Types.STRING()]))  # type: DataStream
         data_stream.key_by(lambda x: x[1], key_type=Types.STRING()) \
-            .window(SimpleCountWindowAssigner()) \
-            .apply(SumWindowFunction(), Types.TUPLE([Types.STRING(), Types.INT()])) \
-            .add_sink(self.test_sink)
+                .window(SimpleCountWindowAssigner()) \
+                .apply(SumWindowFunction(), Types.TUPLE([Types.STRING(), Types.INT()])) \
+                .add_sink(self.test_sink)
 
         self.env.execute('test_count_window')
         result = self.test_sink.get_results()
@@ -862,12 +857,12 @@ class DataStreamTests(object):
             ('hi', 1), ('hi', 2), ('hi', 3), ('hi', 6), ('hi', 8), ('hi', 9), ('hi', 15)],
             type_info=Types.TUPLE([Types.STRING(), Types.INT()]))  # type: DataStream
         watermark_strategy = WatermarkStrategy.for_monotonous_timestamps() \
-            .with_timestamp_assigner(SecondColumnTimestampAssigner())
+                .with_timestamp_assigner(SecondColumnTimestampAssigner())
         data_stream.assign_timestamps_and_watermarks(watermark_strategy) \
-            .key_by(lambda x: x[0], key_type=Types.STRING()) \
-            .window(SimpleMergeTimeWindowAssigner()) \
-            .process(CountWindowProcessFunction(), Types.TUPLE([Types.STRING(), Types.INT()])) \
-            .add_sink(self.test_sink)
+                .key_by(lambda x: x[0], key_type=Types.STRING()) \
+                .window(SimpleMergeTimeWindowAssigner()) \
+                .process(CountWindowProcessFunction(), Types.TUPLE([Types.STRING(), Types.INT()])) \
+                .add_sink(self.test_sink)
 
         self.env.execute('test_time_window')
         result = self.test_sink.get_results()
@@ -921,9 +916,7 @@ class StreamingModeDataStreamTests(DataStreamTests, PyFlinkStreamingTestCase):
             if node['pact'] == 'Data Source':
                 source_ids.append(node['id'])
             if node['pact'] == 'Operator':
-                for pre in node['predecessors']:
-                    union_node_pre_ids.append(pre['id'])
-
+                union_node_pre_ids.extend(pre['id'] for pre in node['predecessors'])
         source_ids.sort()
         union_node_pre_ids.sort()
         self.assertEqual(source_ids, union_node_pre_ids)
@@ -940,9 +933,7 @@ class StreamingModeDataStreamTests(DataStreamTests, PyFlinkStreamingTestCase):
             if node['type'] == '_keyed_stream_values_operator':
                 expected_union_node_pre_ids.append(node['id'])
             if node['pact'] == 'Data Sink':
-                for pre in node['predecessors']:
-                    union_node_pre_ids.append(pre['id'])
-
+                union_node_pre_ids.extend(pre['id'] for pre in node['predecessors'])
         expected_union_node_pre_ids.sort()
         union_node_pre_ids.sort()
         self.assertEqual(expected_union_node_pre_ids, union_node_pre_ids)
@@ -1035,12 +1026,12 @@ class StreamingModeDataStreamTests(DataStreamTests, PyFlinkStreamingTestCase):
         slot_sharing_group_2 = 'slot_sharing_group_2'
         ds_1 = self.env.from_collection([1, 2, 3]).name(source_operator_name)
         ds_1.slot_sharing_group(SlotSharingGroup.builder(slot_sharing_group_1).build()) \
-            .map(lambda x: x + 1).set_parallelism(3) \
-            .name(map_operator_name).slot_sharing_group(slot_sharing_group_2) \
-            .add_sink(self.test_sink)
+                .map(lambda x: x + 1).set_parallelism(3) \
+                .name(map_operator_name).slot_sharing_group(slot_sharing_group_2) \
+                .add_sink(self.test_sink)
 
         j_generated_stream_graph = self.env._j_stream_execution_environment \
-            .getStreamGraph("test start new_chain", True)
+                .getStreamGraph("test start new_chain", True)
 
         j_stream_nodes = list(j_generated_stream_graph.getStreamNodes().toArray())
         for j_stream_node in j_stream_nodes:
@@ -1126,6 +1117,8 @@ class StreamingModeDataStreamTests(DataStreamTests, PyFlinkStreamingTestCase):
             def extract_timestamp(self, value, record_timestamp) -> int:
                 return int(value[1])
 
+
+
         class MyProcessFunction(KeyedProcessFunction):
 
             def __init__(self):
@@ -1141,18 +1134,18 @@ class StreamingModeDataStreamTests(DataStreamTests, PyFlinkStreamingTestCase):
                 current_timestamp = ctx.timestamp()
                 current_watermark = ctx.timer_service().current_watermark()
                 current_key = ctx.get_current_key()
-                yield "current key: {}, current timestamp: {}, current watermark: {}, " \
-                      "current_value: {}".format(str(current_key), str(current_timestamp),
-                                                 str(current_watermark), str(value))
+                yield f"current key: {str(current_key)}, current timestamp: {str(current_timestamp)}, current watermark: {str(current_watermark)}, current_value: {str(value)}"
+
 
             def on_timer(self, timestamp, ctx):
-                yield "on timer: " + str(timestamp)
+                yield f"on timer: {str(timestamp)}"
+
 
         watermark_strategy = WatermarkStrategy.for_monotonous_timestamps()\
-            .with_timestamp_assigner(MyTimestampAssigner())
+                .with_timestamp_assigner(MyTimestampAssigner())
         data_stream.assign_timestamps_and_watermarks(watermark_strategy)\
-            .key_by(lambda x: x[0], key_type=Types.INT()) \
-            .process(MyProcessFunction(), output_type=Types.STRING()).add_sink(self.test_sink)
+                .key_by(lambda x: x[0], key_type=Types.INT()) \
+                .process(MyProcessFunction(), output_type=Types.STRING()).add_sink(self.test_sink)
         self.env.execute('test time stamp assigner with keyed process function')
         result = self.test_sink.get_results()
         # Because the watermark interval is too long, no watermark was sent before processing these
@@ -1206,7 +1199,6 @@ class StreamingModeDataStreamTests(DataStreamTests, PyFlinkStreamingTestCase):
 
         def flat_map_func(x):
             raise ValueError('flat_map_func error')
-            yield x
 
         from py4j.protocol import Py4JJavaError
         import pytest
@@ -1225,8 +1217,8 @@ class StreamingModeDataStreamTests(DataStreamTests, PyFlinkStreamingTestCase):
                                       type_info=Types.ROW([Types.STRING(), Types.INT()]))
 
         ds.map(lambda a: Data(a[0], a[1])) \
-            .flat_map(lambda data: [data.name for _ in range(data.num)]) \
-            .add_sink(self.test_sink)
+                .flat_map(lambda data: [data.name for _ in range(data.num)]) \
+                .add_sink(self.test_sink)
         self.env.execute("test_data_with_custom_class")
         results = self.test_sink.get_results(True)
         expected = ['c', 'c', 'b']
@@ -1252,24 +1244,26 @@ class BatchModeDataStreamTests(DataStreamTests, PyFlinkBatchTestCase):
             def extract_timestamp(self, value, record_timestamp) -> int:
                 return int(value[1])
 
+
+
         class MyProcessFunction(KeyedProcessFunction):
 
             def process_element(self, value, ctx):
                 current_timestamp = ctx.timestamp()
                 current_watermark = ctx.timer_service().current_watermark()
                 current_key = ctx.get_current_key()
-                yield "current key: {}, current timestamp: {}, current watermark: {}, " \
-                      "current_value: {}".format(str(current_key), str(current_timestamp),
-                                                 str(current_watermark), str(value))
+                yield f"current key: {str(current_key)}, current timestamp: {str(current_timestamp)}, current watermark: {str(current_watermark)}, current_value: {str(value)}"
+
 
             def on_timer(self, timestamp, ctx):
                 pass
 
+
         watermark_strategy = WatermarkStrategy.for_monotonous_timestamps() \
-            .with_timestamp_assigner(MyTimestampAssigner())
+                .with_timestamp_assigner(MyTimestampAssigner())
         data_stream.assign_timestamps_and_watermarks(watermark_strategy) \
-            .key_by(lambda x: x[0], key_type=Types.INT()) \
-            .process(MyProcessFunction(), output_type=Types.STRING()).add_sink(self.test_sink)
+                .key_by(lambda x: x[0], key_type=Types.INT()) \
+                .process(MyProcessFunction(), output_type=Types.STRING()).add_sink(self.test_sink)
         self.env.execute('test time stamp assigner with keyed process function')
         result = self.test_sink.get_results()
         expected_result = ["current key: 1, current timestamp: 1603708211000, current watermark: "
@@ -1317,8 +1311,7 @@ class BatchModeDataStreamTests(DataStreamTests, PyFlinkBatchTestCase):
 class MyMapFunction(MapFunction):
 
     def map(self, value):
-        result = Row(value[0], len(value[0]), value[1])
-        return result
+        return Row(value[0], len(value[0]), value[1])
 
 
 class MyFlatMapFunction(FlatMapFunction):
@@ -1515,9 +1508,7 @@ class SimpleCountWindowAssigner(WindowAssigner[tuple, CountWindow]):
 class SumWindowFunction(WindowFunction[tuple, tuple, str, CountWindow]):
 
     def apply(self, key: str, window: CountWindow, inputs: Iterable[tuple]):
-        result = 0
-        for i in inputs:
-            result += i[0]
+        result = sum(i[0] for i in inputs)
         return [(key, result)]
 
 
@@ -1561,8 +1552,7 @@ class SimpleMergeTimeWindowAssigner(MergingWindowAssigner[tuple, TimeWindow]):
     def merge_windows(self,
                       windows: Iterable[TimeWindow],
                       callback: 'MergingWindowAssigner.MergeCallback[TimeWindow]') -> None:
-        window_list = [w for w in windows]
-        window_list.sort()
+        window_list = sorted(windows)
         for i in range(1, len(window_list)):
             if window_list[i - 1].end > window_list[i].start:
                 callback.merge([window_list[i - 1], window_list[i]],
@@ -1590,7 +1580,7 @@ class CountWindowProcessFunction(ProcessWindowFunction[tuple, tuple, str, CountW
                 key: str,
                 content: ProcessWindowFunction.Context,
                 elements: Iterable[tuple]) -> Iterable[tuple]:
-        return [(key, len([e for e in elements]))]
+        return [(key, len(list(elements)))]
 
     def clear(self, context: ProcessWindowFunction.Context) -> None:
         pass

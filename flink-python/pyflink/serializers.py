@@ -161,10 +161,10 @@ class BatchedSerializer(IterableSerializer):
 
 
 def read_int(stream):
-    length = stream.read(4)
-    if not length:
+    if length := stream.read(4):
+        return struct.unpack("!i", length)[0]
+    else:
         raise EOFError
-    return struct.unpack("!i", length)[0]
 
 
 def write_int(value, stream):

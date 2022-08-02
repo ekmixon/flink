@@ -26,7 +26,7 @@ class ConfigurationTests(PyFlinkTestCase):
     def test_init(self):
         conf = Configuration()
 
-        self.assertEqual(conf.to_dict(), dict())
+        self.assertEqual(conf.to_dict(), {})
 
         conf.set_string("k1", "v1")
         conf2 = Configuration(conf)
@@ -72,7 +72,7 @@ class ConfigurationTests(PyFlinkTestCase):
         conf.set_float("k3", 1.2)
         conf.set_boolean("k4", True)
         conf.set_bytearray("k5", bytearray([1, 2, 3]))
-        target_dict = dict()
+        target_dict = {}
         conf.add_all_to_dict(target_dict)
 
         self.assertEqual(target_dict, {"k1": "v1",

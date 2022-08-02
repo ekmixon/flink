@@ -83,13 +83,12 @@ class CompletableFuture(object):
 
         .. versionadded:: 1.11.0
         """
-        if self._j_completable_future.isCompletedExceptionally():
-            try:
-                self._j_completable_future.getNow(None)
-            except Py4JJavaError as e:
-                return convert_py4j_exception(e)
-        else:
+        if not self._j_completable_future.isCompletedExceptionally():
             return None
+        try:
+            self._j_completable_future.getNow(None)
+        except Py4JJavaError as e:
+            return convert_py4j_exception(e)
 
     def __str__(self):
         return self._j_completable_future.toString()

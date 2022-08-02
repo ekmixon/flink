@@ -403,10 +403,7 @@ def rand(seed: Union[int, Expression[int]] = None) -> Expression[float]:
     initial seed if specified. Two rand() functions will return identical sequences of numbers if
     they have same initial seed.
     """
-    if seed is None:
-        return _leaf_op("rand")
-    else:
-        return _unary_op("rand", seed)
+    return _leaf_op("rand") if seed is None else _unary_op("rand", seed)
 
 
 def rand_integer(bound: Union[int, Expression[int]],
@@ -491,10 +488,7 @@ def log(v, base=None) -> Expression[float]:
     If base is specified, calculates the logarithm of the given value to the given base.
     Otherwise, calculates the natural logarithm of the given value.
     """
-    if base is None:
-        return _unary_op("log", v)
-    else:
-        return _binary_op("log", base, v)
+    return _unary_op("log", v) if base is None else _binary_op("log", base, v)
 
 
 def source_watermark() -> Expression:

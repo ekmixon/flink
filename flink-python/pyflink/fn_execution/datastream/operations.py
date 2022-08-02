@@ -186,7 +186,7 @@ def extract_stateless_function(user_defined_function_proto, runtime_context: Run
         process_element_func = wrapped_func
 
     else:
-        raise Exception("Unsupported function_type: " + str(func_type))
+        raise Exception(f"Unsupported function_type: {str(func_type)}")
 
     return open_func, close_func, process_element_func
 
@@ -253,11 +253,7 @@ def extract_stateful_function(user_defined_function_proto,
 
             def process_element(normal_data, timestamp: int):
                 is_left = normal_data[0]
-                if is_left:
-                    user_input = normal_data[1]
-                else:
-                    user_input = normal_data[2]
-
+                user_input = normal_data[1] if is_left else normal_data[2]
                 ctx.set_timestamp(timestamp)
                 on_timer_ctx.set_current_key(user_key_selector(user_input))
                 keyed_state_backend.set_current_key(state_key_selector(user_input))
@@ -268,7 +264,7 @@ def extract_stateful_function(user_defined_function_proto,
                     return process_function.process_element2(input_selector(user_input), ctx)
 
         else:
-            raise Exception("Unsupported func_type: " + str(func_type))
+            raise Exception(f"Unsupported func_type: {str(func_type)}")
 
     elif func_type == UserDefinedDataStreamFunction.WINDOW:
         window_operation_descriptor = user_defined_func
@@ -310,7 +306,7 @@ def extract_stateful_function(user_defined_function_proto,
             return window_operator.on_processing_time(timestamp, key, namespace)
 
     else:
-        raise Exception("Unsupported function_type: " + str(func_type))
+        raise Exception(f"Unsupported function_type: {str(func_type)}")
 
     input_handler = RunnerInputHandler(
         internal_timer_service,

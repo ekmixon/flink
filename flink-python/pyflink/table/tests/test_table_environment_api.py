@@ -261,8 +261,7 @@ class DataStreamConversionTestCases(PyFlinkTestCase):
                          result._j_table_result.getResolvedSchema().toString())
         with result.collect() as result:
             collected_result = [str(item) for item in result]
-            expected_result = [item for item in map(str, [Row(1), Row(2), Row(3), Row(4), Row(5)])]
-            expected_result.sort()
+            expected_result = sorted(map(str, [Row(1), Row(2), Row(3), Row(4), Row(5)]))
             collected_result.sort()
             self.assertEqual(expected_result, collected_result)
 
@@ -321,9 +320,10 @@ class DataStreamConversionTestCases(PyFlinkTestCase):
         result = table.execute()
         with result.collect() as result:
             collected_result = [str(item) for item in result]
-            expected_result = [item for item in
-                               map(str, [Row(1, 'Hi', 'Hello'), Row(2, 'Hello', 'Hi')])]
-            expected_result.sort()
+            expected_result = sorted(
+                map(str, [Row(1, 'Hi', 'Hello'), Row(2, 'Hello', 'Hi')])
+            )
+
             collected_result.sort()
             self.assertEqual(expected_result, collected_result)
 
@@ -365,17 +365,18 @@ class DataStreamConversionTestCases(PyFlinkTestCase):
                                         "GROUP BY c, TUMBLE(rowtime, INTERVAL '0.005' SECOND)")
         with result.collect() as result:
             collected_result = [str(item) for item in result]
-            expected_result = [item for item in
-                               map(str, [Row('a', 47), Row('c', 1000), Row('c', 1000)])]
-            expected_result.sort()
+            expected_result = sorted(
+                map(str, [Row('a', 47), Row('c', 1000), Row('c', 1000)])
+            )
+
             collected_result.sort()
             self.assertEqual(expected_result, collected_result)
 
         ds = self.t_env.to_data_stream(table)
         ds.key_by(lambda k: k.c, key_type=Types.STRING()) \
-            .window(MyTumblingEventTimeWindow()) \
-            .apply(SumWindowFunction(), Types.TUPLE([Types.STRING(), Types.INT()])) \
-            .add_sink(self.test_sink)
+                .window(MyTumblingEventTimeWindow()) \
+                .apply(SumWindowFunction(), Types.TUPLE([Types.STRING(), Types.INT()])) \
+                .add_sink(self.test_sink)
         self.env.execute()
         expected_results = ['(a,47)', '(c,1000)', '(c,1000)']
         actual_results = self.test_sink.get_results(False)
@@ -423,9 +424,9 @@ class DataStreamConversionTestCases(PyFlinkTestCase):
 
         # test event time window and field access
         result.key_by(lambda k: k.f1) \
-            .window(MyTumblingEventTimeWindow()) \
-            .apply(SumWindowFunction(), Types.TUPLE([Types.STRING(), Types.INT()])) \
-            .add_sink(self.test_sink)
+                .window(MyTumblingEventTimeWindow()) \
+                .apply(SumWindowFunction(), Types.TUPLE([Types.STRING(), Types.INT()])) \
+                .add_sink(self.test_sink)
         self.env.execute()
         expected_results = ['(A,47)', '(C,1000)', '(C,1000)']
         actual_results = self.test_sink.get_results(False)
@@ -480,18 +481,20 @@ class StreamTableEnvironmentTests(TableEnvironmentTest, PyFlinkStreamTableTestCa
         field_names = ['a', 'b', 'c']
         source = self.t_env.from_elements(element_data, field_names)
         table_result = self.t_env.execute_sql(
-            "SELECT SUM(a), c FROM %s group by c" % source)
-        with table_result.collect() as result:
-            collected_result = []
-            for i in result:
-                collected_result.append(i)
+            f"SELECT SUM(a), c FROM {source} group by c"
+        )
 
-            collected_result = [str(result) + ',' + str(result.get_row_kind())
-                                for result in collected_result]
+        with table_result.collect() as result:
+            collected_result = list(result)
+            collected_result = [
+                f'{str(result)},{str(result.get_row_kind())}'
+                for result in collected_result
+            ]
+
             expected_result = [Row(1, 'a'), Row(1, 'a'), Row(6, 'a'), Row(3, 'b'),
                                Row(3, 'b'), Row(10, 'b')]
             for i in range(len(expected_result)):
-                expected_result[i] = str(expected_result[i]) + ',' + str(expected_row_kinds[i])
+                expected_result[i] = f'{str(expected_result[i])},{str(expected_row_kinds[i])}'
             expected_result.sort()
             collected_result.sort()
             self.assertEqual(expected_result, collected_result)
@@ -533,9 +536,7 @@ class StreamTableEnvironmentTests(TableEnvironmentTest, PyFlinkStreamTableTestCa
                  DataTypes.DECIMAL(38, 18))]))
         table_result = source.execute()
         with table_result.collect() as result:
-            collected_result = []
-            for i in result:
-                collected_result.append(i)
+            collected_result = list(result)
             self.assertEqual(expected_result, collected_result)
 
 
@@ -554,8 +555,14 @@ class BatchTableEnvironmentTests(PyFlinkBatchTableTestCase):
             CsvTableSink(field_names, field_types, "path2"))
 
         stmt_set = t_env.create_statement_set()
-        stmt_set.add_insert_sql("insert into sink1 select * from %s where a > 100" % source)
-        stmt_set.add_insert_sql("insert into sink2 select * from %s where a < 100" % source)
+        stmt_set.add_insert_sql(
+            f"insert into sink1 select * from {source} where a > 100"
+        )
+
+        stmt_set.add_insert_sql(
+            f"insert into sink2 select * from {source} where a < 100"
+        )
+
 
         actual = stmt_set.explain(ExplainDetail.ESTIMATED_COST, ExplainDetail.CHANGELOG_MODE,
                                   ExplainDetail.JSON_EXECUTION_PLAN)
@@ -668,8 +675,7 @@ class MyTumblingEventTimeWindow(MergingWindowAssigner[tuple, TimeWindow]):
     def merge_windows(self,
                       windows,
                       callback: 'MergingWindowAssigner.MergeCallback[TimeWindow]') -> None:
-        window_list = [w for w in windows]
-        window_list.sort()
+        window_list = sorted(windows)
         for i in range(1, len(window_list)):
             if window_list[i - 1].end > window_list[i].start:
                 callback.merge([window_list[i - 1], window_list[i]],
@@ -729,7 +735,5 @@ class SimpleTimeWindowTrigger(Trigger[tuple, TimeWindow]):
 class SumWindowFunction(WindowFunction[tuple, tuple, str, TimeWindow]):
 
     def apply(self, key: str, window: TimeWindow, inputs: Iterable[tuple]):
-        result = 0
-        for i in inputs:
-            result += i[1]
+        result = sum(i[1] for i in inputs)
         return [(key, result)]

@@ -333,10 +333,9 @@ def _get_kafka_consumer(topics, properties, deserialization_schema, j_consumer_c
     for key, value in properties.items():
         j_properties.setProperty(key, value)
 
-    j_flink_kafka_consumer = j_consumer_clz(topics,
-                                            deserialization_schema._j_deserialization_schema,
-                                            j_properties)
-    return j_flink_kafka_consumer
+    return j_consumer_clz(
+        topics, deserialization_schema._j_deserialization_schema, j_properties
+    )
 
 
 class JdbcSink(SinkFunction):
@@ -357,15 +356,16 @@ class JdbcSink(SinkFunction):
         :param jdbc_connection_options: parameters of connection, such as JDBC URL.
         :return: A JdbcSink.
         """
-        sql_types = []
         gateway = get_gateway()
         JJdbcTypeUtil = gateway.jvm.org.apache.flink.connector.jdbc.utils.JdbcTypeUtil
-        for field_type in type_info.get_field_types():
-            sql_types.append(JJdbcTypeUtil
-                             .typeInformationToSqlType(field_type.get_java_type_info()))
+        sql_types = [
+            JJdbcTypeUtil.typeInformationToSqlType(field_type.get_java_type_info())
+            for field_type in type_info.get_field_types()
+        ]
+
         j_sql_type = to_jarray(gateway.jvm.int, sql_types)
         output_format_clz = gateway.jvm.Class\
-            .forName('org.apache.flink.connector.jdbc.internal.JdbcOutputFormat', False,
+                .forName('org.apache.flink.connector.jdbc.internal.JdbcOutputFormat', False,
                      get_gateway().jvm.Thread.currentThread().getContextClassLoader())
         j_int_array_type = to_jarray(gateway.jvm.int, []).getClass()
         j_builder_method = output_format_clz.getDeclaredMethod('createRowJdbcStatementBuilder',
@@ -376,9 +376,9 @@ class JdbcSink(SinkFunction):
                                                                       [j_sql_type]))
 
         jdbc_execution_options = jdbc_execution_options if jdbc_execution_options is not None \
-            else JdbcExecutionOptions.defaults()
+                else JdbcExecutionOptions.defaults()
         j_jdbc_sink = gateway.jvm.org.apache.flink.connector.jdbc.JdbcSink\
-            .sink(sql, j_statement_builder, jdbc_execution_options._j_jdbc_execution_options,
+                .sink(sql, j_statement_builder, jdbc_execution_options._j_jdbc_execution_options,
                   jdbc_connection_options._j_jdbc_connection_options)
         return JdbcSink(j_jdbc_sink=j_jdbc_sink)
 

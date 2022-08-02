@@ -42,7 +42,7 @@ def word_count():
 
     # register Results table in table environment
     tmp_dir = tempfile.gettempdir()
-    result_path = tmp_dir + '/result'
+    result_path = f'{tmp_dir}/result'
     if os.path.exists(result_path):
         try:
             if os.path.isfile(result_path):

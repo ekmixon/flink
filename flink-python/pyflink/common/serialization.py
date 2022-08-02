@@ -209,7 +209,7 @@ class CsvRowDeserializationSchema(DeserializationSchema):
             if type_info is None:
                 raise TypeError("Type information must not be None")
             self._j_builder = get_gateway().jvm\
-                .org.apache.flink.formats.csv.CsvRowDeserializationSchema.Builder(
+                        .org.apache.flink.formats.csv.CsvRowDeserializationSchema.Builder(
                 type_info.get_java_type_info())
 
         def set_field_delimiter(self, delimiter: str):
@@ -264,7 +264,7 @@ class CsvRowSerializationSchema(SerializationSchema):
             if type_info is None:
                 raise TypeError("Type information must not be None")
             self._j_builder = get_gateway().jvm\
-                .org.apache.flink.formats.csv.CsvRowSerializationSchema.Builder(
+                        .org.apache.flink.formats.csv.CsvRowSerializationSchema.Builder(
                 type_info.get_java_type_info())
 
         def set_field_delimiter(self, c: str):
@@ -324,12 +324,12 @@ class AvroRowDeserializationSchema(DeserializationSchema):
             java_import(gateway.jvm, record_class)
             j_record_class = load_java_class(record_class)
             JAvroRowDeserializationSchema = get_gateway().jvm \
-                .org.apache.flink.formats.avro.AvroRowDeserializationSchema
+                    .org.apache.flink.formats.avro.AvroRowDeserializationSchema
             j_deserialization_schema = JAvroRowDeserializationSchema(j_record_class)
 
-        elif avro_schema_string is not None:
+        else:
             JAvroRowDeserializationSchema = get_gateway().jvm \
-                .org.apache.flink.formats.avro.AvroRowDeserializationSchema
+                    .org.apache.flink.formats.avro.AvroRowDeserializationSchema
             j_deserialization_schema = JAvroRowDeserializationSchema(avro_schema_string)
 
         super(AvroRowDeserializationSchema, self).__init__(j_deserialization_schema)
@@ -357,12 +357,12 @@ class AvroRowSerializationSchema(SerializationSchema):
             java_import(gateway.jvm, record_class)
             j_record_class = load_java_class(record_class)
             JAvroRowSerializationSchema = get_gateway().jvm \
-                .org.apache.flink.formats.avro.AvroRowSerializationSchema
+                    .org.apache.flink.formats.avro.AvroRowSerializationSchema
             j_serialization_schema = JAvroRowSerializationSchema(j_record_class)
 
-        elif avro_schema_string is not None:
+        else:
             JAvroRowSerializationSchema = get_gateway().jvm \
-                .org.apache.flink.formats.avro.AvroRowSerializationSchema
+                    .org.apache.flink.formats.avro.AvroRowSerializationSchema
             j_serialization_schema = JAvroRowSerializationSchema(avro_schema_string)
 
         super(AvroRowSerializationSchema, self).__init__(j_serialization_schema)

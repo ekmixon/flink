@@ -172,13 +172,13 @@ class RestartStrategies(object):
             return None
         gateway = get_gateway()
         NoRestartStrategyConfiguration = gateway.jvm.RestartStrategies\
-            .NoRestartStrategyConfiguration
+                .NoRestartStrategyConfiguration
         FixedDelayRestartStrategyConfiguration = gateway.jvm.RestartStrategies\
-            .FixedDelayRestartStrategyConfiguration
+                .FixedDelayRestartStrategyConfiguration
         FailureRateRestartStrategyConfiguration = gateway.jvm.RestartStrategies\
-            .FailureRateRestartStrategyConfiguration
+                .FailureRateRestartStrategyConfiguration
         FallbackRestartStrategyConfiguration = gateway.jvm.RestartStrategies\
-            .FallbackRestartStrategyConfiguration
+                .FallbackRestartStrategyConfiguration
         clz = j_restart_strategy.getClass()
         if clz.getName() == get_java_class(NoRestartStrategyConfiguration).getName():
             return RestartStrategies.NoRestartStrategyConfiguration(
@@ -193,7 +193,9 @@ class RestartStrategies(object):
             return RestartStrategies.FallbackRestartStrategyConfiguration(
                 j_restart_strategy=j_restart_strategy)
         else:
-            raise Exception("Unsupported java RestartStrategyConfiguration: %s" % clz.getName())
+            raise Exception(
+                f"Unsupported java RestartStrategyConfiguration: {clz.getName()}"
+            )
 
     @staticmethod
     def no_restart() -> 'NoRestartStrategyConfiguration':

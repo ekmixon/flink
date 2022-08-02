@@ -45,7 +45,7 @@ class StreamSqlTests(PyFlinkStreamTableTestCase):
             "sinks",
             source_sink_utils.TestAppendSink(field_names, field_types))
 
-        result = t_env.sql_query("select a + 1, b, c from %s" % source)
+        result = t_env.sql_query(f"select a + 1, b, c from {source}")
         result.execute_insert("sinks").wait()
         actual = source_sink_utils.results()
 
@@ -110,7 +110,7 @@ class StreamSqlTests(PyFlinkStreamTableTestCase):
             "sinks",
             source_sink_utils.TestAppendSink(field_names, field_types))
 
-        t_env.sql_update("insert into sinks select * from %s" % source)
+        t_env.sql_update(f"insert into sinks select * from {source}")
         self.t_env.execute("test_sql_job")
 
         actual = source_sink_utils.results()
@@ -138,8 +138,10 @@ class JavaSqlTests(PyFlinkTestCase):
             self.fail("'%s' is not available. Please compile the test jars first."
                       % jar_path_pattern)
         if len(test_jar_path) > 1:
-            self.fail("There are multiple jars matches the pattern: %s, the jars are: %s"
-                      % (jar_path_pattern, test_jar_path))
+            self.fail(
+                f"There are multiple jars matches the pattern: {jar_path_pattern}, the jars are: {test_jar_path}"
+            )
+
         return test_jar_path[0]
 
     def test_java_sql_ddl(self):

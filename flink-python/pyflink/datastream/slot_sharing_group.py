@@ -94,7 +94,7 @@ class MemorySize(object):
 
     def __lt__(self, other: 'MemorySize'):
         if not isinstance(other, MemorySize):
-            raise Exception("Does not support comparison with non-MemorySize %s" % other)
+            raise Exception(f"Does not support comparison with non-MemorySize {other}")
 
         return self._j_memory_size.compareTo(other._j_memory_size) == -1
 

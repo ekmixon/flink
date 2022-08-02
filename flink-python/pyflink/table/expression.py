@@ -405,11 +405,10 @@ class Expression(Generic[T]):
 
     def __getattr__(self, name):
         if name == '_j_expr':
-            if isinstance(self._j_expr_or_property_name, str):
-                gateway = get_gateway()
-                return getattr(gateway.jvm.Expressions, self._j_expr_or_property_name)
-            else:
+            if not isinstance(self._j_expr_or_property_name, str):
                 return self._j_expr_or_property_name
+            gateway = get_gateway()
+            return getattr(gateway.jvm.Expressions, self._j_expr_or_property_name)
         return self.get(name)
 
     def __getitem__(self, index):
@@ -789,7 +788,7 @@ class Expression(Generic[T]):
         """
         from pyflink.table import Table
         if isinstance(first_element_or_table, Table):
-            assert len(remaining_elements) == 0
+            assert not remaining_elements
             return _binary_op("in")(self, first_element_or_table._j_table)
         else:
             gateway = get_gateway()
@@ -1011,15 +1010,14 @@ class Expression(Generic[T]):
         """
         if length is None:
             return _ternary_op("overlay")(self, new_string, starting)
-        else:
-            j_expr_new_string = new_string._j_expr \
+        j_expr_new_string = new_string._j_expr \
                 if isinstance(new_string, Expression) else new_string
-            j_expr_starting = starting._j_expr \
+        j_expr_starting = starting._j_expr \
                 if isinstance(starting, Expression) else starting
-            j_expr_length = length._j_expr \
+        j_expr_length = length._j_expr \
                 if isinstance(length, Expression) else length
-            return Expression(getattr(self._j_expr, "overlay")(
-                j_expr_new_string, j_expr_starting, j_expr_length))
+        return Expression(getattr(self._j_expr, "overlay")(
+            j_expr_new_string, j_expr_starting, j_expr_length))
 
     def regexp_replace(self,
                        regex: Union[str, 'Expression[str]'],

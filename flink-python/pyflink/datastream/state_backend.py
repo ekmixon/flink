@@ -50,7 +50,10 @@ def _from_j_state_backend(j_state_backend):
     j_clz = j_state_backend.getClass()
 
     if not get_java_class(JStateBackend).isAssignableFrom(j_clz):
-        raise TypeError("The input %s is not an instance of StateBackend." % j_state_backend)
+        raise TypeError(
+            f"The input {j_state_backend} is not an instance of StateBackend."
+        )
+
 
     if get_java_class(JHashMapStateBackend).isAssignableFrom(j_state_backend.getClass()):
         return HashMapStateBackend(j_hashmap_state_backend=j_state_backend.getClass())
@@ -204,7 +207,7 @@ class EmbeddedRocksDBStateBackend(StateBackend):
             gateway = get_gateway()
             JTernaryBoolean = gateway.jvm.org.apache.flink.util.TernaryBoolean
             JEmbeddedRocksDBStateBackend = gateway.jvm.org.apache.flink.contrib.streaming.state \
-                .EmbeddedRocksDBStateBackend
+                    .EmbeddedRocksDBStateBackend
 
             if enable_incremental_checkpointing not in (None, True, False):
                 raise TypeError("Unsupported input for 'enable_incremental_checkpointing': %s, "
@@ -219,7 +222,7 @@ class EmbeddedRocksDBStateBackend(StateBackend):
                 j_enable_incremental_checkpointing = JTernaryBoolean.FALSE
 
             j_embedded_rocks_db_state_backend = \
-                JEmbeddedRocksDBStateBackend(j_enable_incremental_checkpointing)
+                    JEmbeddedRocksDBStateBackend(j_enable_incremental_checkpointing)
 
         super(EmbeddedRocksDBStateBackend, self).__init__(j_embedded_rocks_db_state_backend)
 
@@ -242,12 +245,12 @@ class EmbeddedRocksDBStateBackend(StateBackend):
         :param paths: The paths across which the local RocksDB database files will be spread. this
                       parameter is optional.
         """
-        if len(paths) < 1:
+        if not paths:
             self._j_state_backend.setDbStoragePath(None)
         else:
             gateway = get_gateway()
             j_path_array = gateway.new_array(gateway.jvm.String, len(paths))
-            for i in range(0, len(paths)):
+            for i in range(len(paths)):
                 j_path_array[i] = paths[i]
             self._j_state_backend.setDbStoragePaths(j_path_array)
 
@@ -333,7 +336,7 @@ class EmbeddedRocksDBStateBackend(StateBackend):
         if not get_java_class(JOptionsFactory).isAssignableFrom(j_options_factory_clz):
             raise ValueError("The input class does not implement RocksDBOptionsFactory.")
         self._j_state_backend\
-            .setRocksDBOptions(j_options_factory_clz.newInstance())
+                .setRocksDBOptions(j_options_factory_clz.newInstance())
 
     def get_options(self) -> Optional[str]:
         """
@@ -475,7 +478,7 @@ class MemoryStateBackend(StateBackend):
             gateway = get_gateway()
             JTernaryBoolean = gateway.jvm.org.apache.flink.util.TernaryBoolean
             JMemoryStateBackend = gateway.jvm.org.apache.flink.runtime.state.memory\
-                .MemoryStateBackend
+                    .MemoryStateBackend
             if using_asynchronous_snapshots is None:
                 j_asynchronous_snapshots = JTernaryBoolean.UNDEFINED
             elif using_asynchronous_snapshots is True:
@@ -620,7 +623,7 @@ class FsStateBackend(StateBackend):
             gateway = get_gateway()
             JTernaryBoolean = gateway.jvm.org.apache.flink.util.TernaryBoolean
             JFsStateBackend = gateway.jvm.org.apache.flink.runtime.state.filesystem\
-                .FsStateBackend
+                    .FsStateBackend
             JPath = gateway.jvm.org.apache.flink.core.fs.Path
             if checkpoint_directory_uri is None:
                 raise ValueError("The parameter 'checkpoint_directory_uri' is required!")
@@ -763,7 +766,7 @@ class RocksDBStateBackend(StateBackend):
             gateway = get_gateway()
             JTernaryBoolean = gateway.jvm.org.apache.flink.util.TernaryBoolean
             JRocksDBStateBackend = gateway.jvm.org.apache.flink.contrib.streaming.state \
-                .RocksDBStateBackend
+                    .RocksDBStateBackend
 
             if enable_incremental_checkpointing not in (None, True, False):
                 raise TypeError("Unsupported input for 'enable_incremental_checkpointing': %s, "
@@ -775,7 +778,7 @@ class RocksDBStateBackend(StateBackend):
                     j_rocks_db_state_backend = JRocksDBStateBackend(checkpoint_data_uri)
                 else:
                     j_rocks_db_state_backend = \
-                        JRocksDBStateBackend(checkpoint_data_uri, enable_incremental_checkpointing)
+                            JRocksDBStateBackend(checkpoint_data_uri, enable_incremental_checkpointing)
             elif isinstance(checkpoint_stream_backend, StateBackend):
                 if enable_incremental_checkpointing is None:
                     j_enable_incremental_checkpointing = JTernaryBoolean.UNDEFINED
@@ -785,7 +788,7 @@ class RocksDBStateBackend(StateBackend):
                     j_enable_incremental_checkpointing = JTernaryBoolean.FALSE
 
                 j_rocks_db_state_backend = \
-                    JRocksDBStateBackend(checkpoint_stream_backend._j_state_backend,
+                        JRocksDBStateBackend(checkpoint_stream_backend._j_state_backend,
                                          j_enable_incremental_checkpointing)
 
         self._j_rocks_db_state_backend = j_rocks_db_state_backend
@@ -824,12 +827,12 @@ class RocksDBStateBackend(StateBackend):
         :param paths: The paths across which the local RocksDB database files will be spread. this
                       parameter is optional.
         """
-        if len(paths) < 1:
+        if not paths:
             self._j_rocks_db_state_backend.setDbStoragePath(None)
         else:
             gateway = get_gateway()
             j_path_array = gateway.new_array(gateway.jvm.String, len(paths))
-            for i in range(0, len(paths)):
+            for i in range(len(paths)):
                 j_path_array[i] = paths[i]
             self._j_rocks_db_state_backend.setDbStoragePaths(j_path_array)
 

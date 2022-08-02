@@ -55,7 +55,7 @@ class FlinkKafkaTest(PyFlinkTestCase):
 
         # Test for kafka consumer
         deserialization_schema = JsonRowDeserializationSchema.builder() \
-            .type_info(type_info=type_info).build()
+                .type_info(type_info=type_info).build()
 
         flink_kafka_consumer = flink_kafka_consumer_clz(source_topic, deserialization_schema, props)
         flink_kafka_consumer.set_start_from_earliest()
@@ -82,7 +82,7 @@ class FlinkKafkaTest(PyFlinkTestCase):
 
         # Test for kafka producer
         serialization_schema = JsonRowSerializationSchema.builder().with_type_info(type_info) \
-            .build()
+                .build()
         flink_kafka_producer = flink_kafka_producer_clz(sink_topic, serialization_schema, props)
         flink_kafka_producer.set_write_timestamp_to_kafka(False)
 
@@ -185,11 +185,9 @@ class ConnectorTests(PyFlinkTestCase):
             for file in files:
                 self.assertTrue(file.startswith('.prefix'))
                 self.assertTrue('suffix' in file)
-                path = root + "/" + file
+                path = f"{root}/{file}"
                 with open(path) as infile:
-                    for line in infile:
-                        results.append(line)
-
+                    results.extend(iter(infile))
         expected = ['deeefg\n', 'bdc\n', 'ab\n', 'cfgs\n']
         results.sort()
         expected.sort()
@@ -223,16 +221,16 @@ class ConnectorTests(PyFlinkTestCase):
         encoder = Encoder.simple_string_encoder()
         file_sink_builder = FileSink.for_row_format(base_path, encoder)
         file_sink = file_sink_builder\
-            .with_bucket_check_interval(1000) \
-            .with_bucket_assigner(BucketAssigner.base_path_bucket_assigner()) \
-            .with_rolling_policy(RollingPolicy.on_checkpoint_rolling_policy()) \
-            .with_output_file_config(
+                .with_bucket_check_interval(1000) \
+                .with_bucket_assigner(BucketAssigner.base_path_bucket_assigner()) \
+                .with_rolling_policy(RollingPolicy.on_checkpoint_rolling_policy()) \
+                .with_output_file_config(
                 OutputFileConfig.builder().with_part_prefix("pre").with_part_suffix("suf").build())\
-            .build()
+                .build()
 
         buckets_builder_field = \
-            load_java_class("org.apache.flink.connector.file.sink.FileSink"). \
-            getDeclaredField("bucketsBuilder")
+                load_java_class("org.apache.flink.connector.file.sink.FileSink"). \
+                getDeclaredField("bucketsBuilder")
         buckets_builder_field.setAccessible(True)
         buckets_builder = buckets_builder_field.get(file_sink.get_java_function())
 

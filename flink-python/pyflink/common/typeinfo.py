@@ -130,7 +130,7 @@ class BasicTypeInfo(TypeInformation):
             elif self._basic_type == BasicType.INSTANT:
                 self._j_typeinfo = JBasicTypeInfo.INSTANT_TYPE_INFO
             else:
-                raise TypeError("Invalid BasicType %s." % self._basic_type)
+                raise TypeError(f"Invalid BasicType {self._basic_type}.")
         return self._j_typeinfo
 
     def __eq__(self, o) -> bool:
@@ -266,7 +266,7 @@ class PrimitiveArrayTypeInfo(TypeInformation):
         return False
 
     def __repr__(self) -> str:
-        return "PrimitiveArrayTypeInfo<%s>" % self._element_type
+        return f"PrimitiveArrayTypeInfo<{self._element_type}>"
 
 
 class BasicArrayTypeInfo(TypeInformation):
@@ -312,7 +312,7 @@ class BasicArrayTypeInfo(TypeInformation):
         return False
 
     def __repr__(self):
-        return "BasicArrayTypeInfo<%s>" % self._element_type
+        return f"BasicArrayTypeInfo<{self._element_type}>"
 
 
 class ObjectArrayTypeInfo(TypeInformation):
@@ -337,7 +337,7 @@ class ObjectArrayTypeInfo(TypeInformation):
         return False
 
     def __repr__(self):
-        return "ObjectArrayTypeInfo<%s>" % self._element_type
+        return f"ObjectArrayTypeInfo<{self._element_type}>"
 
 
 class PickledBytesTypeInfo(TypeInformation):
@@ -375,13 +375,11 @@ class RowTypeInfo(TypeInformation):
     def get_field_names(self) -> List[str]:
         if not self._field_names:
             j_field_names = self.get_java_type_info().getFieldNames()
-            self._field_names = [name for name in j_field_names]
+            self._field_names = list(j_field_names)
         return self._field_names
 
     def get_field_index(self, field_name: str) -> int:
-        if self._field_names:
-            return self._field_names.index(field_name)
-        return -1
+        return self._field_names.index(field_name) if self._field_names else -1
 
     def get_field_types(self) -> List[TypeInformation]:
         return self._field_types
@@ -415,10 +413,15 @@ class RowTypeInfo(TypeInformation):
 
     def __repr__(self) -> str:
         if self._field_names:
-            return "RowTypeInfo(%s)" % ', '.join([field_name + ': ' + str(field_type)
-                                                  for field_name, field_type in
-                                                  zip(self.get_field_names(),
-                                                      self.get_field_types())])
+            return "RowTypeInfo(%s)" % ', '.join(
+                [
+                    f'{field_name}: {str(field_type)}'
+                    for field_name, field_type in zip(
+                        self.get_field_names(), self.get_field_types()
+                    )
+                ]
+            )
+
         else:
             return "RowTypeInfo(%s)" % ', '.join(
                 [str(field_type) for field_type in self._field_types])
@@ -458,21 +461,20 @@ class RowTypeInfo(TypeInformation):
                     zip(self.get_field_names(), self._field_types, self._need_conversion))
             else:
                 raise ValueError("Unexpected tuple %r with RowTypeInfo" % obj)
+        elif isinstance(obj, dict):
+            return (RowKind.INSERT.value,) + tuple(obj.get(n) for n in self.get_field_names())
+        elif isinstance(obj, Row) and hasattr(obj, "_fields"):
+            return (obj.get_row_kind().value,) + tuple(
+                obj.get(n) for n in self.get_field_names())
+        elif isinstance(obj, Row):
+            return (obj.get_row_kind().value,) + tuple(obj)
+        elif isinstance(obj, (list, tuple)):
+            return (RowKind.INSERT.value,) + tuple(obj)
+        elif hasattr(obj, "__dict__"):
+            d = obj.__dict__
+            return (RowKind.INSERT.value,) + tuple(d.get(n) for n in self.get_field_names())
         else:
-            if isinstance(obj, dict):
-                return (RowKind.INSERT.value,) + tuple(obj.get(n) for n in self.get_field_names())
-            elif isinstance(obj, Row) and hasattr(obj, "_fields"):
-                return (obj.get_row_kind().value,) + tuple(
-                    obj.get(n) for n in self.get_field_names())
-            elif isinstance(obj, Row):
-                return (obj.get_row_kind().value,) + tuple(obj)
-            elif isinstance(obj, (list, tuple)):
-                return (RowKind.INSERT.value,) + tuple(obj)
-            elif hasattr(obj, "__dict__"):
-                d = obj.__dict__
-                return (RowKind.INSERT.value,) + tuple(d.get(n) for n in self.get_field_names())
-            else:
-                raise ValueError("Unexpected tuple %r with RowTypeInfo" % obj)
+            raise ValueError("Unexpected tuple %r with RowTypeInfo" % obj)
 
     def from_internal_type(self, obj):
         if obj is None:
@@ -574,9 +576,9 @@ class TimeTypeInfo(TypeInformation):
         if t is not None:
             if t.tzinfo is not None:
                 offset = t.utcoffset()
-                offset = offset if offset else datetime.timedelta()
+                offset = offset or datetime.timedelta()
                 offset_microseconds =\
-                    (offset.days * 86400 + offset.seconds) * 10 ** 6 + offset.microseconds
+                        (offset.days * 86400 + offset.seconds) * 10 ** 6 + offset.microseconds
             else:
                 offset_microseconds = self.EPOCH_ORDINAL
             minutes = t.hour * 60 + t.minute
@@ -657,7 +659,7 @@ class ListTypeInfo(TypeInformation):
             return False
 
     def __repr__(self):
-        return "ListTypeInfo<%s>" % self.elem_type
+        return f"ListTypeInfo<{self.elem_type}>"
 
 
 class MapTypeInfo(TypeInformation):
@@ -681,7 +683,7 @@ class MapTypeInfo(TypeInformation):
                 self._value_type_info == other._value_type_info
 
     def __repr__(self) -> str:
-        return 'MapTypeInfo<{}, {}>'.format(self._key_type_info, self._value_type_info)
+        return f'MapTypeInfo<{self._key_type_info}, {self._value_type_info}>'
 
 
 class ExternalTypeInfo(TypeInformation):
@@ -693,9 +695,9 @@ class ExternalTypeInfo(TypeInformation):
         if not self._j_typeinfo:
             gateway = get_gateway()
             TypeInfoDataTypeConverter = \
-                gateway.jvm.org.apache.flink.table.types.utils.LegacyTypeInfoDataTypeConverter
+                    gateway.jvm.org.apache.flink.table.types.utils.LegacyTypeInfoDataTypeConverter
             JExternalTypeInfo = \
-                gateway.jvm.org.apache.flink.table.runtime.typeutils.ExternalTypeInfo
+                    gateway.jvm.org.apache.flink.table.runtime.typeutils.ExternalTypeInfo
 
             j_data_type = TypeInfoDataTypeConverter.toDataType(self._type_info.get_java_type_info())
             self._j_typeinfo = JExternalTypeInfo.of(j_data_type)
@@ -705,7 +707,7 @@ class ExternalTypeInfo(TypeInformation):
         return self.__class__ == other.__class__ and self._type_info == other._type_info
 
     def __repr__(self):
-        return 'ExternalTypeInfo<{}>'.format(self._type_info)
+        return f'ExternalTypeInfo<{self._type_info}>'
 
 
 class Types(object):
@@ -1004,14 +1006,15 @@ def _from_java_type(j_type_info: JavaObject) -> TypeInformation:
         j_row_field_types = j_type_info.getFieldTypes()
         row_field_types = [_from_java_type(j_row_field_type) for j_row_field_type in
                            j_row_field_types]
-        row_field_names = [field_name for field_name in j_row_field_names]
+        row_field_names = list(j_row_field_names)
         return Types.ROW_NAMED(row_field_names, row_field_types)
 
     JTupleTypeInfo = gateway.jvm.org.apache.flink.api.java.typeutils.TupleTypeInfo
     if _is_instance_of(j_type_info, JTupleTypeInfo):
-        j_field_types = []
-        for i in range(j_type_info.getArity()):
-            j_field_types.append(j_type_info.getTypeAt(i))
+        j_field_types = [
+            j_type_info.getTypeAt(i) for i in range(j_type_info.getArity())
+        ]
+
         field_types = [_from_java_type(j_field_type) for j_field_type in j_field_types]
         return TupleTypeInfo(field_types)
 
@@ -1033,7 +1036,9 @@ def _from_java_type(j_type_info: JavaObject) -> TypeInformation:
         return ExternalTypeInfo(_from_java_type(
             TypeInfoDataTypeConverter.toLegacyTypeInfo(j_type_info.getDataType())))
 
-    raise TypeError("The java type info: %s is not supported in PyFlink currently." % j_type_info)
+    raise TypeError(
+        f"The java type info: {j_type_info} is not supported in PyFlink currently."
+    )
 
 
 def _is_instance_of(java_object: JavaObject, java_type: Union[JavaObject, JavaClass]) -> bool:

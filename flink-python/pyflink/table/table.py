@@ -110,10 +110,9 @@ class Table(object):
         """
         if all(isinstance(f, Expression) for f in fields):
             return Table(self._j_table.select(to_expression_jarray(fields)), self._t_env)
-        else:
-            assert len(fields) == 1
-            assert isinstance(fields[0], str)
-            return Table(self._j_table.select(fields[0]), self._t_env)
+        assert len(fields) == 1
+        assert isinstance(fields[0], str)
+        return Table(self._j_table.select(fields[0]), self._t_env)
 
     def alias(self, field: str, *fields: str) -> 'Table':
         """
@@ -182,10 +181,9 @@ class Table(object):
         """
         if all(isinstance(f, Expression) for f in fields):
             return GroupedTable(self._j_table.groupBy(to_expression_jarray(fields)), self._t_env)
-        else:
-            assert len(fields) == 1
-            assert isinstance(fields[0], str)
-            return GroupedTable(self._j_table.groupBy(fields[0]), self._t_env)
+        assert len(fields) == 1
+        assert isinstance(fields[0], str)
+        return GroupedTable(self._j_table.groupBy(fields[0]), self._t_env)
 
     def distinct(self) -> 'Table':
         """
@@ -341,13 +339,12 @@ class Table(object):
         """
         if isinstance(table_function_call, UserDefinedTableFunctionWrapper):
             table_function_call._set_takes_row_as_input()
-            if hasattr(table_function_call, "_alias_names"):
-                alias_names = getattr(table_function_call, "_alias_names")
-                table_function_call = table_function_call(with_columns(col("*"))) \
-                    .alias(*alias_names)
-            else:
+            if not hasattr(table_function_call, "_alias_names"):
                 raise AttributeError('table_function_call must be followed by a alias function'
                                      'e.g. table_function.alias("a", "b")')
+            alias_names = getattr(table_function_call, "_alias_names")
+            table_function_call = table_function_call(with_columns(col("*"))) \
+                    .alias(*alias_names)
         if join_predicate is None:
             return Table(self._j_table.joinLateral(
                 _get_java_expression(table_function_call)), self._t_env)
@@ -389,13 +386,12 @@ class Table(object):
         """
         if isinstance(table_function_call, UserDefinedTableFunctionWrapper):
             table_function_call._set_takes_row_as_input()
-            if hasattr(table_function_call, "_alias_names"):
-                alias_names = getattr(table_function_call, "_alias_names")
-                table_function_call = table_function_call(with_columns(col("*"))) \
-                    .alias(*alias_names)
-            else:
+            if not hasattr(table_function_call, "_alias_names"):
                 raise AttributeError('table_function_call must be followed by a alias function'
                                      'e.g. table_function.alias("a", "b")')
+            alias_names = getattr(table_function_call, "_alias_names")
+            table_function_call = table_function_call(with_columns(col("*"))) \
+                    .alias(*alias_names)
         if join_predicate is None:
             return Table(self._j_table.leftOuterJoinLateral(
                 _get_java_expression(table_function_call)), self._t_env)
@@ -549,10 +545,9 @@ class Table(object):
         """
         if all(isinstance(f, Expression) for f in fields):
             return Table(self._j_table.orderBy(to_expression_jarray(fields)), self._t_env)
-        else:
-            assert len(fields) == 1
-            assert isinstance(fields[0], str)
-            return Table(self._j_table.orderBy(fields[0]), self._t_env)
+        assert len(fields) == 1
+        assert isinstance(fields[0], str)
+        return Table(self._j_table.orderBy(fields[0]), self._t_env)
 
     def offset(self, offset: int) -> 'Table':
         """
@@ -719,10 +714,9 @@ class Table(object):
         """
         if all(isinstance(f, Expression) for f in fields):
             return Table(self._j_table.addColumns(to_expression_jarray(fields)), self._t_env)
-        else:
-            assert len(fields) == 1
-            assert isinstance(fields[0], str)
-            return Table(self._j_table.addColumns(fields[0]), self._t_env)
+        assert len(fields) == 1
+        assert isinstance(fields[0], str)
+        return Table(self._j_table.addColumns(fields[0]), self._t_env)
 
     def add_or_replace_columns(self, *fields: Union[str, Expression]) -> 'Table':
         """
@@ -745,10 +739,9 @@ class Table(object):
         if all(isinstance(f, Expression) for f in fields):
             return Table(self._j_table.addOrReplaceColumns(to_expression_jarray(fields)),
                          self._t_env)
-        else:
-            assert len(fields) == 1
-            assert isinstance(fields[0], str)
-            return Table(self._j_table.addOrReplaceColumns(fields[0]), self._t_env)
+        assert len(fields) == 1
+        assert isinstance(fields[0], str)
+        return Table(self._j_table.addOrReplaceColumns(fields[0]), self._t_env)
 
     def rename_columns(self, *fields: Union[str, Expression]) -> 'Table':
         """
@@ -767,10 +760,9 @@ class Table(object):
         if all(isinstance(f, Expression) for f in fields):
             return Table(self._j_table.renameColumns(to_expression_jarray(fields)),
                          self._t_env)
-        else:
-            assert len(fields) == 1
-            assert isinstance(fields[0], str)
-            return Table(self._j_table.renameColumns(fields[0]), self._t_env)
+        assert len(fields) == 1
+        assert isinstance(fields[0], str)
+        return Table(self._j_table.renameColumns(fields[0]), self._t_env)
 
     def drop_columns(self, *fields: Union[str, Expression]) -> 'Table':
         """
@@ -788,10 +780,9 @@ class Table(object):
         if all(isinstance(f, Expression) for f in fields):
             return Table(self._j_table.dropColumns(to_expression_jarray(fields)),
                          self._t_env)
-        else:
-            assert len(fields) == 1
-            assert isinstance(fields[0], str)
-            return Table(self._j_table.dropColumns(fields[0]), self._t_env)
+        assert len(fields) == 1
+        assert isinstance(fields[0], str)
+        return Table(self._j_table.dropColumns(fields[0]), self._t_env)
 
     def map(self, func: Union[str, Expression, UserDefinedScalarFunctionWrapper]) -> 'Table':
         """
@@ -1166,10 +1157,9 @@ class GroupedTable(object):
         """
         if all(isinstance(f, Expression) for f in fields):
             return Table(self._j_table.select(to_expression_jarray(fields)), self._t_env)
-        else:
-            assert len(fields) == 1
-            assert isinstance(fields[0], str)
-            return Table(self._j_table.select(fields[0]), self._t_env)
+        assert len(fields) == 1
+        assert isinstance(fields[0], str)
+        return Table(self._j_table.select(fields[0]), self._t_env)
 
     def aggregate(self, func: Union[str, Expression, UserDefinedAggregateFunctionWrapper]) \
             -> 'AggregatedTable':
@@ -1309,10 +1299,9 @@ class GroupWindowedTable(object):
         if all(isinstance(f, Expression) for f in fields):
             return WindowGroupedTable(
                 self._j_table.groupBy(to_expression_jarray(fields)), self._t_env)
-        else:
-            assert len(fields) == 1
-            assert isinstance(fields[0], str)
-            return WindowGroupedTable(self._j_table.groupBy(fields[0]), self._t_env)
+        assert len(fields) == 1
+        assert isinstance(fields[0], str)
+        return WindowGroupedTable(self._j_table.groupBy(fields[0]), self._t_env)
 
 
 class WindowGroupedTable(object):
@@ -1343,10 +1332,9 @@ class WindowGroupedTable(object):
         """
         if all(isinstance(f, Expression) for f in fields):
             return Table(self._j_table.select(to_expression_jarray(fields)), self._t_env)
-        else:
-            assert len(fields) == 1
-            assert isinstance(fields[0], str)
-            return Table(self._j_table.select(fields[0]), self._t_env)
+        assert len(fields) == 1
+        assert isinstance(fields[0], str)
+        return Table(self._j_table.select(fields[0]), self._t_env)
 
     def aggregate(self, func: Union[str, Expression, UserDefinedAggregateFunctionWrapper]) \
             -> 'AggregatedTable':
@@ -1395,12 +1383,10 @@ class WindowGroupedTable(object):
         j_group_window = group_window_field.get(self._j_table)
         j_time_field = j_group_window.getTimeField()
         fields_without_window = without_columns(j_time_field)
-        if hasattr(func, "_alias_names"):
-            alias_names = getattr(func, "_alias_names")
-            func_expression = func(fields_without_window).alias(*alias_names)
-        else:
-            func_expression = func(fields_without_window)
-        return func_expression
+        if not hasattr(func, "_alias_names"):
+            return func(fields_without_window)
+        alias_names = getattr(func, "_alias_names")
+        return func(fields_without_window).alias(*alias_names)
 
 
 class OverWindowedTable(object):
@@ -1435,10 +1421,9 @@ class OverWindowedTable(object):
         """
         if all(isinstance(f, Expression) for f in fields):
             return Table(self._j_table.select(to_expression_jarray(fields)), self._t_env)
-        else:
-            assert len(fields) == 1
-            assert isinstance(fields[0], str)
-            return Table(self._j_table.select(fields[0]), self._t_env)
+        assert len(fields) == 1
+        assert isinstance(fields[0], str)
+        return Table(self._j_table.select(fields[0]), self._t_env)
 
 
 class AggregatedTable(object):
@@ -1478,10 +1463,9 @@ class AggregatedTable(object):
         """
         if all(isinstance(f, Expression) for f in fields):
             return Table(self._j_table.select(to_expression_jarray(fields)), self._t_env)
-        else:
-            assert len(fields) == 1
-            assert isinstance(fields[0], str)
-            return Table(self._j_table.select(fields[0]), self._t_env)
+        assert len(fields) == 1
+        assert isinstance(fields[0], str)
+        return Table(self._j_table.select(fields[0]), self._t_env)
 
 
 class FlatAggregateTable(object):
@@ -1536,7 +1520,6 @@ class FlatAggregateTable(object):
         """
         if all(isinstance(f, Expression) for f in fields):
             return Table(self._j_table.select(to_expression_jarray(fields)), self._t_env)
-        else:
-            assert len(fields) == 1
-            assert isinstance(fields[0], str)
-            return Table(self._j_table.select(fields[0]), self._t_env)
+        assert len(fields) == 1
+        assert isinstance(fields[0], str)
+        return Table(self._j_table.select(fields[0]), self._t_env)

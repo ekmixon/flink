@@ -42,12 +42,12 @@ MAX_LONG_VALUE = sys.maxsize
 def long_to_int_with_bit_mixing(x: int) -> int:
     x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9
     x = (x ^ (x >> 27)) * 0x94d049bb133111eb
-    x = x ^ (x >> 31)
+    x ^= x >> 31
     return x
 
 
 def mod_inverse(x: int) -> int:
-    inverse = x * x * x
+    inverse = x**2 * x
     inverse *= 2 - x * inverse
     inverse *= 2 - x * inverse
     inverse *= 2 - x * inverse
@@ -111,7 +111,7 @@ class TimeWindow(Window):
 
     def __lt__(self, other: 'TimeWindow'):
         if not isinstance(other, TimeWindow):
-            raise Exception("Does not support comparison with non-TimeWindow %s" % other)
+            raise Exception(f"Does not support comparison with non-TimeWindow {other}")
 
         return self.start == other.start and self.end < other.end or self.start < other.start
 
@@ -119,7 +119,7 @@ class TimeWindow(Window):
         return self.__eq__(other) and self.__lt__(other)
 
     def __repr__(self):
-        return "TimeWindow(start={}, end={})".format(self.start, self.end)
+        return f"TimeWindow(start={self.start}, end={self.end})"
 
 
 class CountWindow(Window):
@@ -143,7 +143,7 @@ class CountWindow(Window):
         return self.__class__ == other.__class__ and self.id == other.id
 
     def __repr__(self):
-        return "CountWindow(id={})".format(self.id)
+        return f"CountWindow(id={self.id})"
 
 
 class TimeWindowSerializer(TypeSerializer[TimeWindow]):

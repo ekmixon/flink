@@ -35,11 +35,9 @@ _lock = RLock()
 
 
 def is_launch_gateway_disabled():
-    if "PYFLINK_GATEWAY_DISABLED" in os.environ \
-            and os.environ["PYFLINK_GATEWAY_DISABLED"].lower() not in ["0", "false", ""]:
-        return True
-    else:
-        return False
+    return "PYFLINK_GATEWAY_DISABLED" in os.environ and os.environ[
+        "PYFLINK_GATEWAY_DISABLED"
+    ].lower() not in ["0", "false", ""]
 
 
 def get_gateway():
@@ -116,13 +114,14 @@ def launch_gateway():
     finally:
         shutil.rmtree(conn_info_dir)
 
-    # Connect to the gateway
-    gateway = JavaGateway(
-        gateway_parameters=GatewayParameters(port=gateway_port, auto_convert=True),
+    return JavaGateway(
+        gateway_parameters=GatewayParameters(
+            port=gateway_port, auto_convert=True
+        ),
         callback_server_parameters=CallbackServerParameters(
-            port=0, daemonize=True, daemonize_connections=True))
-
-    return gateway
+            port=0, daemonize=True, daemonize_connections=True
+        ),
+    )
 
 
 def import_flink_view(gateway):

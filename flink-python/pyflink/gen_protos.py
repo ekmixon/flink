@@ -47,9 +47,11 @@ def generate_proto_files(force=True, output_dir=DEFAULT_PYTHON_OUTPUT_PATH):
 
     proto_dirs = [os.path.join(PYFLINK_ROOT_PATH, path) for path in PROTO_PATHS]
     proto_files = sum(
-        [glob.glob(os.path.join(d, '*.proto')) for d in proto_dirs], [])
+        (glob.glob(os.path.join(d, '*.proto')) for d in proto_dirs), []
+    )
+
     out_dir = os.path.join(PYFLINK_ROOT_PATH, output_dir)
-    out_files = [path for path in glob.glob(os.path.join(out_dir, '*_pb2.py'))]
+    out_files = list(glob.glob(os.path.join(out_dir, '*_pb2.py')))
 
     if out_files and not proto_files and not force:
         # We have out_files but no protos; assume they're up to date.
@@ -58,10 +60,8 @@ def generate_proto_files(force=True, output_dir=DEFAULT_PYTHON_OUTPUT_PATH):
         return
 
     elif not out_files and not proto_files:
-        raise RuntimeError(
-            'No proto files found in %s.' % proto_dirs)
+        raise RuntimeError(f'No proto files found in {proto_dirs}.')
 
-    # Regenerate iff the proto files or this file are newer.
     elif force or not out_files or len(out_files) < len(proto_files) or (
             min(os.path.getmtime(path) for path in out_files)
             <= max(os.path.getmtime(path)
@@ -90,13 +90,14 @@ def generate_proto_files(force=True, output_dir=DEFAULT_PYTHON_OUTPUT_PATH):
             logging.info('Regenerating out-of-date Python proto definitions.')
             builtin_protos = pkg_resources.resource_filename('grpc_tools', '_proto')
             args = (
-                [sys.executable] +  # expecting to be called from command line
-                ['--proto_path=%s' % builtin_protos] +
-                ['--proto_path=%s' % d for d in proto_dirs] +
-                ['--python_out=%s' % out_dir] +
-                proto_files)
-            ret_code = protoc.main(args)
-            if ret_code:
+                (
+                    ([sys.executable] + [f'--proto_path={builtin_protos}'])
+                    + [f'--proto_path={d}' for d in proto_dirs]
+                )
+                + [f'--python_out={out_dir}']
+            ) + proto_files
+
+            if ret_code := protoc.main(args):
                 raise RuntimeError(
                     'Protoc returned non-zero status (see logs for details): '
                     '%s' % ret_code)
@@ -114,7 +115,7 @@ def generate_proto_files(force=True, output_dir=DEFAULT_PYTHON_OUTPUT_PATH):
 # See https://github.com/pypa/setuptools/issues/377
 def _install_grpcio_tools_and_generate_proto_files(force, output_dir):
     install_path = os.path.join(PYFLINK_ROOT_PATH, '..', '.eggs', 'grpcio-wheels')
-    build_path = install_path + '-build'
+    build_path = f'{install_path}-build'
     if os.path.exists(build_path):
         shutil.rmtree(build_path)
     logging.warning('Installing grpcio-tools into %s', install_path)
@@ -131,9 +132,21 @@ def _install_grpcio_tools_and_generate_proto_files(force, output_dir):
                  '--upgrade', GRPC_TOOLS, "-I"])
         else:
             subprocess.check_call(
-                [sys.executable, '-m', 'pip', 'install',
-                 '--install-option', '--prefix=' + install_path, '--build', build_path,
-                 '--upgrade', GRPC_TOOLS, "-I"])
+                [
+                    sys.executable,
+                    '-m',
+                    'pip',
+                    'install',
+                    '--install-option',
+                    f'--prefix={install_path}',
+                    '--build',
+                    build_path,
+                    '--upgrade',
+                    GRPC_TOOLS,
+                    "-I",
+                ]
+            )
+
         from distutils.dist import Distribution
         install_obj = Distribution().get_command_obj('install', create=True)
         install_obj.prefix = install_path
@@ -157,7 +170,7 @@ def _install_grpcio_tools_and_generate_proto_files(force, output_dir):
 def _add_license_header(dir, file_name):
     with open(os.path.join(dir, file_name), 'r') as original_file:
         original_data = original_file.read()
-        tmp_file_name = file_name + '.tmp'
+        tmp_file_name = f'{file_name}.tmp'
         with open(os.path.join(dir, tmp_file_name), 'w') as tmp_file:
             tmp_file.write(
                 '################################################################################\n'
@@ -189,7 +202,8 @@ def _check_grpcio_tools_version():
     from pkg_resources import parse_version
     if version < parse_version('1.3.5') or version > parse_version('1.14.2'):
         raise RuntimeError(
-            "Version of grpcio-tools must be between 1.3.5 and 1.14.2, got %s" % version)
+            f"Version of grpcio-tools must be between 1.3.5 and 1.14.2, got {version}"
+        )
 
 
 if __name__ == '__main__':

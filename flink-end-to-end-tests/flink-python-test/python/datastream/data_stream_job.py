@@ -60,14 +60,13 @@ def python_data_stream_example():
 class MyProcessFunction(KeyedProcessFunction):
 
     def process_element(self, value, ctx: 'KeyedProcessFunction.Context'):
-        result = "Current key: {}, orderId: {}, payAmount: {}, timestamp: {}".format(
-            str(ctx.get_current_key()), str(value[1]), str(value[2]), str(ctx.timestamp()))
-        yield result
+        yield f"Current key: {str(ctx.get_current_key())}, orderId: {str(value[1])}, payAmount: {str(value[2])}, timestamp: {str(ctx.timestamp())}"
+
         current_watermark = ctx.timer_service().current_watermark()
         ctx.timer_service().register_event_time_timer(current_watermark + 1500)
 
     def on_timer(self, timestamp, ctx: 'KeyedProcessFunction.OnTimerContext'):
-        yield "On timer timestamp: " + str(timestamp)
+        yield f"On timer timestamp: {str(timestamp)}"
 
 
 class KafkaRowTimestampAssigner(TimestampAssigner):

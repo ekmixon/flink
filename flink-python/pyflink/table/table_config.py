@@ -274,7 +274,7 @@ class TableConfig(object):
                 "HALF_DOWN",
                 "HALF_EVEN",
                 "UNNECESSARY"):
-            raise ValueError("Unsupported rounding_mode: %s" % rounding_mode)
+            raise ValueError(f"Unsupported rounding_mode: {rounding_mode}")
         gateway = get_gateway()
         j_rounding_mode = getattr(gateway.jvm.java.math.RoundingMode, rounding_mode)
         j_math_context = gateway.jvm.java.math.MathContext(precision, j_rounding_mode)

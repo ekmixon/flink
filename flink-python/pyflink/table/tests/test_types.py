@@ -75,10 +75,10 @@ class ExamplePoint:
         self.y = y
 
     def __repr__(self):
-        return "ExamplePoint(%s,%s)" % (self.x, self.y)
+        return f"ExamplePoint({self.x},{self.y})"
 
     def __str__(self):
-        return "(%s,%s)" % (self.x, self.y)
+        return f"({self.x},{self.y})"
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and other.x == self.x and other.y == self.y
@@ -264,14 +264,14 @@ class TypesTests(PyFlinkTestCase):
 
     def test_struct_type(self):
         row1 = DataTypes.ROW().add("f1", DataTypes.STRING(nullable=True)) \
-            .add("f2", DataTypes.STRING(nullable=True))
+                .add("f2", DataTypes.STRING(nullable=True))
         row2 = DataTypes.ROW([DataTypes.FIELD("f1", DataTypes.STRING(nullable=True)),
                               DataTypes.FIELD("f2", DataTypes.STRING(nullable=True), None)])
         self.assertEqual(row1.field_names(), row2.names)
         self.assertEqual(row1, row2)
 
         row1 = DataTypes.ROW().add("f1", DataTypes.STRING(nullable=True)) \
-            .add("f2", DataTypes.STRING(nullable=True))
+                .add("f2", DataTypes.STRING(nullable=True))
         row2 = DataTypes.ROW([DataTypes.FIELD("f1", DataTypes.STRING(nullable=True))])
         self.assertNotEqual(row1.field_names(), row2.names)
         self.assertNotEqual(row1, row2)
@@ -293,19 +293,19 @@ class TypesTests(PyFlinkTestCase):
         self.assertRaises(ValueError, lambda: DataTypes.ROW().add("name"))
 
         row1 = DataTypes.ROW().add("f1", DataTypes.STRING(nullable=True)) \
-            .add("f2", DataTypes.STRING(nullable=True))
+                .add("f2", DataTypes.STRING(nullable=True))
         for field in row1:
             self.assertIsInstance(field, RowField)
 
         row1 = DataTypes.ROW().add("f1", DataTypes.STRING(nullable=True)) \
-            .add("f2", DataTypes.STRING(nullable=True))
+                .add("f2", DataTypes.STRING(nullable=True))
         self.assertEqual(len(row1), 2)
 
         row1 = DataTypes.ROW().add("f1", DataTypes.STRING(nullable=True)) \
-            .add("f2", DataTypes.STRING(nullable=True))
+                .add("f2", DataTypes.STRING(nullable=True))
         self.assertIs(row1["f1"], row1.fields[0])
         self.assertIs(row1[0], row1.fields[0])
-        self.assertEqual(row1[0:1], DataTypes.ROW(row1.fields[0:1]))
+        self.assertEqual(row1[:1], DataTypes.ROW(row1.fields[:1]))
         self.assertRaises(KeyError, lambda: row1["f9"])
         self.assertRaises(IndexError, lambda: row1[9])
         self.assertRaises(TypeError, lambda: row1[9.9])
@@ -626,7 +626,7 @@ class DataTypeVerificationTests(PyFlinkTestCase):
             try:
                 _create_type_verifier(data_type)(obj)
             except (TypeError, ValueError):
-                self.fail("verify_type(%s, %s, nullable=True)" % (obj, data_type))
+                self.fail(f"verify_type({obj}, {data_type}, nullable=True)")
 
     def test_verify_type_not_nullable(self):
         import array
@@ -791,11 +791,11 @@ class DataTypeVerificationTests(PyFlinkTestCase):
             try:
                 _create_type_verifier(data_type.not_null())(obj)
             except (TypeError, ValueError):
-                self.fail("verify_type(%s, %s, nullable=False)" % (obj, data_type))
+                self.fail(f"verify_type({obj}, {data_type}, nullable=False)")
 
         # Check failure cases
         for obj, data_type, exp in failure_spec:
-            msg = "verify_type(%s, %s, nullable=False) == %s" % (obj, data_type, exp)
+            msg = f"verify_type({obj}, {data_type}, nullable=False) == {exp}"
             with self.assertRaises(exp, msg=msg):
                 _create_type_verifier(data_type.not_null())(obj)
 
@@ -847,7 +847,7 @@ class DataTypeConvertTests(PyFlinkTestCase):
         # Legacy type tests
         Types = gateway.jvm.org.apache.flink.table.api.Types
         InternalBigDecimalTypeInfo = \
-            gateway.jvm.org.apache.flink.table.runtime.typeutils.BigDecimalTypeInfo
+                gateway.jvm.org.apache.flink.table.runtime.typeutils.BigDecimalTypeInfo
 
         java_types = [Types.STRING(),
                       Types.DECIMAL(),

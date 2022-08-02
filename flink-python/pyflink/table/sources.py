@@ -101,8 +101,9 @@ class CsvTableSource(TableSource):
             #     empty Python str.  That error can be made more friendly here.
             if len(quote_character) != 1:
                 raise ValueError(
-                    "Expected a single CSV quote character but got '{}'".format(quote_character)
+                    f"Expected a single CSV quote character but got '{quote_character}'"
                 )
+
             builder.quoteCharacter(quote_character)
 
         if ignore_first_line:

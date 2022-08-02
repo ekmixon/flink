@@ -58,7 +58,7 @@ class PythonBootTests(PyFlinkTestCase):
             server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
             add_ProvisionServiceServicer_to_server(ProvisionService(), server)
             port = get_unused_port()
-            server.add_insecure_port('[::]:' + str(port))
+            server.add_insecure_port(f'[::]:{str(port)}')
             server.start()
             return server, port
 
@@ -74,7 +74,7 @@ class PythonBootTests(PyFlinkTestCase):
         pyflink_package_dir = os.path.dirname(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         runner_script = "pyflink-udf-runner.bat" if on_windows() else \
-            "pyflink-udf-runner.sh"
+                "pyflink-udf-runner.sh"
         self.runner_path = os.path.join(
             pyflink_package_dir, "bin", runner_script)
 

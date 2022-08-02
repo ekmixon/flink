@@ -55,6 +55,7 @@ class ArrowSerializer(IterableSerializer):
             yield arrow_to_pandas(self._timezone, self._field_types, [batch])
 
     def load_from_iterator(self, iter):
+
         class IteratorIO(io.RawIOBase):
             def __init__(self, iter):
                 super(IteratorIO, self).__init__()
@@ -73,7 +74,6 @@ class ArrowSerializer(IterableSerializer):
                 b[:len(output)] = output
                 return len(output)
         import pyarrow as pa
-        reader = pa.ipc.open_stream(
-            io.BufferedReader(IteratorIO(iter), buffer_size=io.DEFAULT_BUFFER_SIZE))
-        for batch in reader:
-            yield batch
+        yield from pa.ipc.open_stream(
+            io.BufferedReader(IteratorIO(iter), buffer_size=io.DEFAULT_BUFFER_SIZE)
+        )

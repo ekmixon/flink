@@ -71,28 +71,27 @@ class ListView(DataView, Generic[T]):
         self._list = []
 
     def __eq__(self, other: Any) -> bool:
-        if isinstance(other, ListView):
-            iter_obj = other.get()
-            self_iterator = iter(self)
-            for value in iter_obj:
-                try:
-                    self_value = next(self_iterator)
-                except StopIteration:
-                    # this list view is shorter than another one
-                    return False
-                if self_value != value:
-                    # the elements are not the same.
-                    return False
-            try:
-                next(self_iterator)
-            except StopIteration:
-                # the length of this list view is the same as another one
-                return True
-            else:
-                # this list view is longer than another one
-                return False
-        else:
+        if not isinstance(other, ListView):
             # the object is not a ListView
+            return False
+        iter_obj = other.get()
+        self_iterator = iter(self)
+        for value in iter_obj:
+            try:
+                self_value = next(self_iterator)
+            except StopIteration:
+                # this list view is shorter than another one
+                return False
+            if self_value != value:
+                # the elements are not the same.
+                return False
+        try:
+            next(self_iterator)
+        except StopIteration:
+            # the length of this list view is the same as another one
+            return True
+        else:
+            # this list view is longer than another one
             return False
 
     def __hash__(self) -> int:
@@ -109,7 +108,7 @@ class MapView(Generic[K, V]):
     """
 
     def __init__(self):
-        self._dict = dict()
+        self._dict = {}
 
     def get(self, key: K) -> V:
         """

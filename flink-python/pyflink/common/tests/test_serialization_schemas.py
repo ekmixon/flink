@@ -51,13 +51,13 @@ class TestRowSerializationSchemas(PyFlinkTestCase):
                                      Types.PRIMITIVE_ARRAY(Types.INT())])
 
         json_row_serialization_schema = JsonRowSerializationSchema.builder() \
-            .with_type_info(row_schema).build()
+                .with_type_info(row_schema).build()
         json_row_deserialization_schema = JsonRowDeserializationSchema.builder() \
-            .type_info(row_schema).build()
+                .type_info(row_schema).build()
 
         for i in range(len(jsons)):
             j_row = json_row_deserialization_schema._j_deserialization_schema\
-                .deserialize(bytes(jsons[i], encoding='utf-8'))
+                    .deserialize(bytes(jsons[i], encoding='utf-8'))
             result = str(json_row_serialization_schema._j_serialization_schema.serialize(j_row),
                          encoding='utf-8')
             self.assertEqual(expected_jsons[i], result)
@@ -71,21 +71,21 @@ class TestRowSerializationSchemas(PyFlinkTestCase):
 
         def field_assertion(field_info, csv_value, value, field_delimiter):
             row_info = Types.ROW([Types.STRING(), field_info, Types.STRING()])
-            expected_csv = "BEGIN" + field_delimiter + csv_value + field_delimiter + "END\n"
+            expected_csv = f"BEGIN{field_delimiter}{csv_value}{field_delimiter}" + "END\n"
             j_row.setField(1, value)
 
             csv_row_serialization_schema = CsvRowSerializationSchema.Builder(row_info)\
-                .set_escape_character('*').set_quote_character('\'')\
-                .set_array_element_delimiter(':').set_field_delimiter(';').build()
+                    .set_escape_character('*').set_quote_character('\'')\
+                    .set_array_element_delimiter(':').set_field_delimiter(';').build()
             csv_row_deserialization_schema = CsvRowDeserializationSchema.Builder(row_info)\
-                .set_escape_character('*').set_quote_character('\'')\
-                .set_array_element_delimiter(':').set_field_delimiter(';').build()
+                    .set_escape_character('*').set_quote_character('\'')\
+                    .set_array_element_delimiter(':').set_field_delimiter(';').build()
 
             serialized_bytes = csv_row_serialization_schema._j_serialization_schema.serialize(j_row)
             self.assertEqual(expected_csv, str(serialized_bytes, encoding='utf-8'))
 
             j_deserialized_row = csv_row_deserialization_schema._j_deserialization_schema\
-                .deserialize(expected_csv.encode("utf-8"))
+                    .deserialize(expected_csv.encode("utf-8"))
             self.assertTrue(j_row.equals(j_deserialized_row))
 
         field_assertion(Types.STRING(), "'123''4**'", "123'4*", ";")

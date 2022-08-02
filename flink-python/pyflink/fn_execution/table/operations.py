@@ -115,7 +115,7 @@ class ScalarFunctionOperation(BaseOperation):
                 dict(chain(x[1].items(), y[1].items())),
                 x[2] + y[2]),
             [operation_utils.extract_user_defined_function(udf) for udf in serialized_fn.udfs])
-        generate_func = eval('lambda value: [%s]' % scalar_functions, variable_dict)
+        generate_func = eval(f'lambda value: [{scalar_functions}]', variable_dict)
         return generate_func, user_defined_funcs
 
 
@@ -131,11 +131,14 @@ class TableFunctionOperation(BaseOperation):
         :return: the generated lambda function
         """
         table_function, variable_dict, user_defined_funcs = \
-            operation_utils.extract_user_defined_function(serialized_fn.udfs[0])
+                operation_utils.extract_user_defined_function(serialized_fn.udfs[0])
         variable_dict['normalize_table_function_result'] = \
-            operation_utils.normalize_table_function_result
-        generate_func = eval('lambda value: normalize_table_function_result(%s)' % table_function,
-                             variable_dict)
+                operation_utils.normalize_table_function_result
+        generate_func = eval(
+            f'lambda value: normalize_table_function_result({table_function})',
+            variable_dict,
+        )
+
         return generate_func, user_defined_funcs
 
 
@@ -152,15 +155,18 @@ class PandasAggregateFunctionOperation(BaseOperation):
             [operation_utils.extract_user_defined_function(udf, True)
              for udf in serialized_fn.udfs])
         variable_dict['normalize_pandas_result'] = operation_utils.normalize_pandas_result
-        generate_func = eval('lambda value: normalize_pandas_result([%s])' %
-                             pandas_functions, variable_dict)
+        generate_func = eval(
+            f'lambda value: normalize_pandas_result([{pandas_functions}])',
+            variable_dict,
+        )
+
         return generate_func, user_defined_funcs
 
 
 class PandasBatchOverWindowAggregateFunctionOperation(BaseOperation):
     def __init__(self, spec):
         super(PandasBatchOverWindowAggregateFunctionOperation, self).__init__(spec)
-        self.windows = [window for window in self.spec.serialized_fn.windows]
+        self.windows = list(self.spec.serialized_fn.windows)
         # the index among all the bounded range over window
         self.bounded_range_window_index = [-1 for _ in range(len(self.windows))]
         # Whether the specified position window is a bounded range window.
@@ -185,10 +191,10 @@ class PandasBatchOverWindowAggregateFunctionOperation(BaseOperation):
         self.mapper = []
         for udf in serialized_fn.udfs:
             pandas_agg_function, variable_dict, user_defined_func, window_index = \
-                operation_utils.extract_over_window_user_defined_function(udf)
+                    operation_utils.extract_over_window_user_defined_function(udf)
             user_defined_funcs.extend(user_defined_func)
             self.window_indexes.append(window_index)
-            self.mapper.append(eval('lambda value: %s' % pandas_agg_function, variable_dict))
+            self.mapper.append(eval(f'lambda value: {pandas_agg_function}', variable_dict))
         return self.wrapped_over_window_function, user_defined_funcs
 
     def wrapped_over_window_function(self, boundaries_series):
@@ -228,36 +234,34 @@ class PandasBatchOverWindowAggregateFunctionOperation(BaseOperation):
                         end = window_boundaries[j * 2 + 1]
                         series_slices = [s.iloc[start:end] for s in input_series]
                         result.append(func(series_slices))
-            else:
-                # unbounded range window or unbounded row window
-                if (window_type is OverWindow.RANGE_UNBOUNDED) or (
+            elif (window_type is OverWindow.RANGE_UNBOUNDED) or (
                         window_type is OverWindow.ROW_UNBOUNDED):
-                    series_slices = [s.iloc[:] for s in input_series]
-                    func_result = func(series_slices)
-                    result = [func_result for _ in range(input_cnt)]
-                elif window_type is OverWindow.ROW_UNBOUNDED_PRECEDING:
-                    # row unbounded preceding window
-                    window_end = window.upper_boundary
-                    for j in range(input_cnt):
-                        end = min(j + window_end + 1, input_cnt)
-                        series_slices = [s.iloc[: end] for s in input_series]
-                        result.append(func(series_slices))
-                elif window_type is OverWindow.ROW_UNBOUNDED_FOLLOWING:
-                    # row unbounded following window
-                    window_start = window.lower_boundary
-                    for j in range(input_cnt):
-                        start = max(j + window_start, 0)
-                        series_slices = [s.iloc[start: input_cnt] for s in input_series]
-                        result.append(func(series_slices))
-                else:
-                    # row sliding window
-                    window_start = window.lower_boundary
-                    window_end = window.upper_boundary
-                    for j in range(input_cnt):
-                        start = max(j + window_start, 0)
-                        end = min(j + window_end + 1, input_cnt)
-                        series_slices = [s.iloc[start: end] for s in input_series]
-                        result.append(func(series_slices))
+                series_slices = [s.iloc[:] for s in input_series]
+                func_result = func(series_slices)
+                result = [func_result for _ in range(input_cnt)]
+            elif window_type is OverWindow.ROW_UNBOUNDED_PRECEDING:
+                # row unbounded preceding window
+                window_end = window.upper_boundary
+                for j in range(input_cnt):
+                    end = min(j + window_end + 1, input_cnt)
+                    series_slices = [s.iloc[: end] for s in input_series]
+                    result.append(func(series_slices))
+            elif window_type is OverWindow.ROW_UNBOUNDED_FOLLOWING:
+                # row unbounded following window
+                window_start = window.lower_boundary
+                for j in range(input_cnt):
+                    start = max(j + window_start, 0)
+                    series_slices = [s.iloc[start: input_cnt] for s in input_series]
+                    result.append(func(series_slices))
+            else:
+                # row sliding window
+                window_start = window.lower_boundary
+                window_end = window.upper_boundary
+                for j in range(input_cnt):
+                    start = max(j + window_start, 0)
+                    end = min(j + window_end + 1, input_cnt)
+                    series_slices = [s.iloc[start: end] for s in input_series]
+                    result.append(func(series_slices))
             results.append(pd.Series(result))
         return results
 
@@ -284,7 +288,7 @@ class AbstractStreamGroupAggregateOperation(BaseStatefulOperation):
 
     def __init__(self, spec, keyed_state_backend):
         self.generate_update_before = spec.serialized_fn.generate_update_before
-        self.grouping = [i for i in spec.serialized_fn.grouping]
+        self.grouping = list(spec.serialized_fn.grouping)
         self.group_agg_function = None
         # If the upstream generates retract message, we need to add an additional count1() agg
         # to track current accumulated messages count. If all the messages are retracted, we need
@@ -313,7 +317,7 @@ class AbstractStreamGroupAggregateOperation(BaseStatefulOperation):
         distinct_info_dict = {}
         for i in range(len(serialized_fn.udfs)):
             user_defined_agg, input_extractor, filter_arg, distinct_index = \
-                extract_user_defined_aggregate_function(
+                    extract_user_defined_aggregate_function(
                     i, serialized_fn.udfs[i], distinct_info_dict)
             user_defined_aggs.append(user_defined_agg)
             input_extractors.append(input_extractor)
@@ -346,10 +350,7 @@ class AbstractStreamGroupAggregateOperation(BaseStatefulOperation):
         # [element_type, element(for process_element), timestamp(for timer), key(for timer)]
         # all the fields are nullable except the "element_type"
         if input_data[0] == NORMAL_RECORD:
-            if has_cython:
-                row = InternalRow.from_row(input_data[1])
-            else:
-                row = input_data[1]
+            row = InternalRow.from_row(input_data[1]) if has_cython else input_data[1]
             self.group_agg_function.process_element(row)
         else:
             self.group_agg_function.on_timer(input_data[3])
@@ -498,7 +499,7 @@ class StreamGroupWindowAggregateOperation(AbstractStreamGroupAggregateOperation)
                 timestamp = internal_timer.get_timestamp()
                 encoded_window = self._namespace_coder.encode(window)
                 self._reuse_timer_data._values = \
-                    [timer_operand_type.value, self._reuse_key_data, timestamp, encoded_window]
+                        [timer_operand_type.value, self._reuse_key_data, timestamp, encoded_window]
                 yield [TRIGGER_TIMER, None, self._reuse_timer_data]
         else:
             timestamp = input_data[2]
@@ -526,9 +527,10 @@ class StreamGroupWindowAggregateOperation(AbstractStreamGroupAggregateOperation)
             elif named_property == flink_fn_execution_pb2.GroupWindow.PROC_TIME_ATTRIBUTE:
                 named_property_extractor_array.append("-1")
             else:
-                raise Exception("Unexpected property %s" % named_property)
-        named_property_extractor_str = ','.join(named_property_extractor_array)
-        if named_property_extractor_str:
-            return eval('lambda value: [%s]' % named_property_extractor_str)
+                raise Exception(f"Unexpected property {named_property}")
+        if named_property_extractor_str := ','.join(
+            named_property_extractor_array
+        ):
+            return eval(f'lambda value: [{named_property_extractor_str}]')
         else:
             return None

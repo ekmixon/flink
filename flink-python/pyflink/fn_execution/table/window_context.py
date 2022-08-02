@@ -241,7 +241,7 @@ class TriggerContext(object):
             state = self._state_backend.get_map_state(
                 state_descriptor.name, key_coder, value_coder)
         else:
-            raise Exception("Unknown supported StateDescriptor %s" % state_descriptor)
+            raise Exception(f"Unknown supported StateDescriptor {state_descriptor}")
         state.set_current_namespace(self.window)
         return state
 

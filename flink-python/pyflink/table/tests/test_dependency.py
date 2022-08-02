@@ -33,7 +33,10 @@ from pyflink.testing.test_case_utils import (PyFlinkStreamTableTestCase,
 class DependencyTests(object):
 
     def test_add_python_file(self):
-        python_file_dir = os.path.join(self.tempdir, "python_file_dir_" + str(uuid.uuid4()))
+        python_file_dir = os.path.join(
+            self.tempdir, f"python_file_dir_{str(uuid.uuid4())}"
+        )
+
         os.mkdir(python_file_dir)
         python_file_path = os.path.join(python_file_dir, "test_dependency_manage_lib.py")
         with open(python_file_path, 'w') as f:
@@ -41,7 +44,9 @@ class DependencyTests(object):
         self.t_env.add_python_file(python_file_path)
 
         python_file_dir_with_higher_priority = os.path.join(
-            self.tempdir, "python_file_dir_" + str(uuid.uuid4()))
+            self.tempdir, f"python_file_dir_{str(uuid.uuid4())}"
+        )
+
         os.mkdir(python_file_dir_with_higher_priority)
         python_file_path_higher_priority = os.path.join(python_file_dir_with_higher_priority,
                                                         "test_dependency_manage_lib.py")
@@ -98,11 +103,17 @@ class StreamDependencyTests(DependencyTests, PyFlinkStreamTableTestCase):
 
     def test_set_requirements_with_cached_directory(self):
         tmp_dir = self.tempdir
-        requirements_txt_path = os.path.join(tmp_dir, "requirements_txt_" + str(uuid.uuid4()))
+        requirements_txt_path = os.path.join(
+            tmp_dir, f"requirements_txt_{str(uuid.uuid4())}"
+        )
+
         with open(requirements_txt_path, 'w') as f:
             f.write("python-package1==0.0.0")
 
-        requirements_dir_path = os.path.join(tmp_dir, "requirements_dir_" + str(uuid.uuid4()))
+        requirements_dir_path = os.path.join(
+            tmp_dir, f"requirements_dir_{str(uuid.uuid4())}"
+        )
+
         os.mkdir(requirements_dir_path)
         package_file_name = "python-package1-0.0.0.tar.gz"
         with open(os.path.join(requirements_dir_path, package_file_name), 'wb') as f:
@@ -144,12 +155,12 @@ class StreamDependencyTests(DependencyTests, PyFlinkStreamTableTestCase):
 
     def test_add_python_archive(self):
         tmp_dir = self.tempdir
-        archive_dir_path = os.path.join(tmp_dir, "archive_" + str(uuid.uuid4()))
+        archive_dir_path = os.path.join(tmp_dir, f"archive_{str(uuid.uuid4())}")
         os.mkdir(archive_dir_path)
         with open(os.path.join(archive_dir_path, "data.txt"), 'w') as f:
             f.write("2")
         archive_file_path = \
-            shutil.make_archive(os.path.dirname(archive_dir_path), 'zip', archive_dir_path)
+                shutil.make_archive(os.path.dirname(archive_dir_path), 'zip', archive_dir_path)
         self.t_env.add_python_archive(archive_file_path, "data")
 
         def add_from_file(i):

@@ -29,10 +29,10 @@ from pyflink.metrics import *
 
 utf8_out = open(sys.stdout.fileno(), mode='w', encoding='utf8', buffering=1)
 
-print("Using Python version %s (%s, %s)" % (
-    platform.python_version(),
-    platform.python_build()[0],
-    platform.python_build()[1]))
+print(
+    f"Using Python version {platform.python_version()} ({platform.python_build()[0]}, {platform.python_build()[1]})"
+)
+
 
 welcome_msg = u'''
                          \u2592\u2593\u2588\u2588\u2593\u2588\u2588\u2592

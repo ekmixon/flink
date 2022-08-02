@@ -155,9 +155,8 @@ class EventTimeTrigger(Trigger[TimeWindow]):
         if window.max_timestamp() <= self._ctx.get_current_watermark():
             # if the watermark is already past the window fire immediately
             return True
-        else:
-            self._ctx.register_event_time_timer(window.max_timestamp())
-            return False
+        self._ctx.register_event_time_timer(window.max_timestamp())
+        return False
 
     def on_processing_time(self, time: int, window: W) -> bool:
         return False
@@ -180,7 +179,9 @@ class CountTrigger(Trigger[CountWindow]):
     def __init__(self, count_elements: int):
         self._count_elements = count_elements
         self._count_state_desc = ValueStateDescriptor(
-            "trigger-count-%s" % count_elements, Types.LONG())
+            f"trigger-count-{count_elements}", Types.LONG()
+        )
+
         self._ctx = None  # type: TriggerContext
 
     def open(self, ctx: TriggerContext):
@@ -193,11 +194,10 @@ class CountTrigger(Trigger[CountWindow]):
             count = 0
         count += 1
         count_state.update(count)
-        if count >= self._count_elements:
-            count_state.clear()
-            return True
-        else:
+        if count < self._count_elements:
             return False
+        count_state.clear()
+        return True
 
     def on_processing_time(self, time: int, window: W) -> bool:
         return False

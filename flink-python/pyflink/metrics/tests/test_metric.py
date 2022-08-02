@@ -38,7 +38,7 @@ class MetricTests(PyFlinkTestCase):
         if mg._parent is None:
             return 'root'
         else:
-            return MetricTests.print_metric_group_path(mg._parent) + '.' + mg._name
+            return f'{MetricTests.print_metric_group_path(mg._parent)}.{mg._name}'
 
     def test_add_group(self):
         new_group = MetricTests.base_metric_group.add_group('my_group')
